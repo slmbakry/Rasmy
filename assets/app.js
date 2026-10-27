@@ -7,7 +7,7 @@
   const previewBar = document.getElementById("preview");
 
   const NAV = {
-    admin: [["home", "الرئيسية"], ["invites", "الدعوات"], ["offices", "المكاتب"], ["users", "المستخدمين"]],
+    admin: [["home", "الرئيسية"], ["performance", "أداء المكاتب"], ["invites", "الدعوات"], ["offices", "المكاتب"], ["users", "المستخدمين"]],
     owner: [["home", "لوحتي"], ["guide", "ابدأ مشروع"], ["company-new", "ضيف شركة"]],
     office: [["home", "الطلبات"]],
   };
