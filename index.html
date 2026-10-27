@@ -16,16 +16,26 @@
   <header class="bar">
     <div class="bar-in">
       <a class="brand" href="#home"><span class="mark" aria-hidden="true"></span>رسمي</a>
-      <nav class="nav" id="nav" aria-label="التنقل"></nav>
       <button class="btn ghost hidden" id="logout" type="button">خروج</button>
+      <nav class="nav" id="nav" aria-label="التنقل"></nav>
     </div>
   </header>
+  <div class="preview" id="preview" hidden>
+    <span>وضع التجربة:</span>
+    <button type="button" data-as="admin">مدير</button>
+    <button type="button" data-as="owner">صاحب عمل</button>
+    <button type="button" data-as="office">مكتب</button>
+    <span class="preview-note">البيانات اللي تعملها هنا بتتعلّم إنها تجريبية</span>
+  </div>
   <div class="pilot">نسخة تجريبية بالدعوة فقط</div>
   <main id="app" class="wrap"><div class="loading">جاري التحميل</div></main>
   <div id="toast" class="toast" role="status" hidden></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
   <script src="assets/config.js"></script>
+  <script src="assets/core.js"></script>
+  <script src="assets/admin.js"></script>
+  <script src="assets/owner.js"></script>
   <script src="assets/app.js"></script>
 </body>
 </html>
