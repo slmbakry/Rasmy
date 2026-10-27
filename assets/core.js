@@ -26,7 +26,47 @@
   function readViewAs() { try { return sessionStorage.getItem("rasmy-view-as") || "admin"; } catch { return "admin"; } }
   function writeViewAs(v) { try { sessionStorage.setItem("rasmy-view-as", v); } catch {} }
 
-  const state = { profile: null, viewAs: readViewAs(), services: null };
+  function readPreviewOffice() { try { return sessionStorage.getItem("rasmy-preview-office") || null; } catch { return null; } }
+  function writePreviewOffice(v) { try { sessionStorage.setItem("rasmy-preview-office", v); } catch {} }
+
+  const state = { profile: null, viewAs: readViewAs(), previewOffice: readPreviewOffice(), services: null };
+
+  // The office this screen acts for: the user's own, or the one an admin previews as.
+  const officeId = () => (state.profile?.role === "admin" ? state.previewOffice : state.profile?.office_id) || null;
+
+  // Files attached to a request, readable by everyone who can see the request.
+  async function filesBlock(host, requestId) {
+    const prefix = `requests/${requestId}`;
+    const draw = async () => {
+      const { data } = await sb.storage.from("files").list(prefix, { sortBy: { column: "created_at", order: "desc" } });
+      const files = (data || []).filter((f) => f.name !== ".emptyFolderPlaceholder");
+      host.innerHTML = `<h3 class="sub">الملفات</h3>
+        ${files.length ? files.map((f) => `<div class="kv"><span>${esc(f.name.replace(/^\d+-/, ""))}</span><button class="btn small" type="button" data-file="${esc(f.name)}">افتح</button></div>`).join("") : '<p class="empty">مفيش ملفات لسه.</p>'}
+        <label class="btn small" for="up-${requestId}">ارفع ملف</label><input type="file" id="up-${requestId}" hidden>`;
+      host.querySelectorAll("[data-file]").forEach((b) => b.addEventListener("click", async () => {
+        const { data: s, error } = await sb.storage.from("files").createSignedUrl(`${prefix}/${b.dataset.file}`, 300);
+        if (error) return toast("ماقدرناش نفتح الملف", true);
+        window.open(s.signedUrl, "_blank", "noopener");
+      }));
+      host.querySelector(`#up-${requestId}`).addEventListener("change", async (e) => {
+        const f = e.target.files[0]; if (!f) return;
+        if (f.size > 10 * 1024 * 1024) return toast("الملف أكبر من ١٠ ميجا", true);
+        const safe = f.name.replace(/[^\w.\-؀-ۿ]+/g, "_");
+        const { error } = await sb.storage.from("files").upload(`${prefix}/${Date.now()}-${safe}`, f);
+        if (error) return toast("ماقدرناش نرفع الملف", true);
+        await sb.from("events").insert({ request_id: requestId, actor_id: state.profile.id, kind: "file", note: f.name });
+        toast("اترفع الملف"); draw();
+      });
+    };
+    await draw();
+  }
+
+  // A stage is late when it started and its planned days have passed.
+  function stageLate(stage) {
+    if (!stage?.started_at || stage.done_at) return 0;
+    const due = new Date(stage.started_at).getTime() + stage.planned_days * DAY;
+    return Math.max(0, Math.floor((Date.now() - due) / DAY));
+  }
 
   function role() {
     const p = state.profile;
@@ -82,5 +122,9 @@
     return `احترافية ${num(o.pro.toFixed(1))} · سرعة ${num(o.speed.toFixed(1))} · ${num(o.count)} تقييم`;
   }
 
-  window.R = { sb, DAY, esc, fmtDate, num, money, days, today, toast, state, role, isPreview, writeViewAs, services, docStatus, optionsFor, optionLabel, views: {} };
+  const EVENTS = { created: "اتعمل الطلب", accepted: "المكتب قبل الطلب", declined: "المكتب اعتذر عن الطلب", stage_done: "خلصت مرحلة", done: "خلص الطلب", cancelled: "اتلغى الطلب", note: "ملاحظة", file: "اترفع ملف" };
+  const STATUS = { new: ["", "جديد"], accepted: ["", "المكتب قبله"], in_progress: ["warn", "جاري التنفيذ"], done: ["ok", "تم"], cancelled: ["", "ملغي"] };
+
+  window.R = { sb, DAY, esc, fmtDate, num, money, days, today, toast, state, role, isPreview, writeViewAs, writePreviewOffice, officeId,
+    services, docStatus, optionsFor, optionLabel, filesBlock, stageLate, EVENTS, STATUS, views: {} };
 })();

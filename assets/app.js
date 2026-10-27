@@ -1,6 +1,6 @@
 // App shell: sign-in, consent, navigation and the admin preview switch.
 (function () {
-  const { sb, esc, toast, state, role, isPreview, writeViewAs, views } = window.R;
+  const { sb, esc, toast, state, role, isPreview, writeViewAs, writePreviewOffice, views } = window.R;
   const app = document.getElementById("app");
   const nav = document.getElementById("nav");
   const logoutBtn = document.getElementById("logout");
@@ -24,6 +24,7 @@
     if (admin) {
       previewBar.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.as === state.viewAs)));
       previewBar.classList.toggle("on", isPreview());
+      officePicker();
     }
   }
 
@@ -40,6 +41,23 @@
   }
   window.R.render = render;
   window.addEventListener("hashchange", render);
+
+  // When an admin previews as an office, they pick which office to act for.
+  let officeList = null;
+  async function officePicker() {
+    const pick = document.getElementById("preview-office");
+    pick.hidden = state.viewAs !== "office";
+    if (pick.hidden) return;
+    if (!officeList) {
+      const { data } = await sb.from("offices").select("id,name").eq("active", true).order("name");
+      officeList = data || [];
+    }
+    pick.innerHTML = `<option value="">اختار المكتب</option>` + officeList.map((o) => `<option value="${o.id}" ${o.id === state.previewOffice ? "selected" : ""}>${esc(o.name)}</option>`).join("");
+  }
+  document.getElementById("preview-office").addEventListener("change", (e) => {
+    state.previewOffice = e.target.value || null; writePreviewOffice(e.target.value);
+    location.hash = "#home"; render();
+  });
 
   previewBar.addEventListener("click", (e) => {
     const b = e.target.closest("button[data-as]"); if (!b) return;
@@ -116,13 +134,6 @@
     });
   }
 
-  // Office screens arrive in the next phase.
-  views.office = {
-    home(el) {
-      el.innerHTML = `<section class="head"><span class="eyebrow">المكتب</span><h1>الطلبات الجديدة</h1>
-        <p>شاشات المكتب هتتفتح في المرحلة الجاية: قبول الطلبات، وتحديث المراحل، ورفع المستندات.</p></section>`;
-    },
-  };
 
   (async () => { await loadProfile(); render(); })();
 })();

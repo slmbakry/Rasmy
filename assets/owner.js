@@ -1,8 +1,7 @@
 // Business-owner screens: dashboard, guide and plan, adding a company, renewals, request tracking.
 (function () {
-  const { sb, esc, fmtDate, num, money, days, toast, state, isPreview, services, docStatus, optionsFor, optionLabel } = window.R;
+  const { sb, esc, fmtDate, num, money, days, toast, state, isPreview, services, docStatus, optionsFor, optionLabel, filesBlock, stageLate, EVENTS, STATUS } = window.R;
   const uid = () => state.profile.id;
-  const STATUS = { new: ["", "جديد"], accepted: ["", "المكتب قبله"], in_progress: ["warn", "جاري التنفيذ"], done: ["ok", "تم"], cancelled: ["", "ملغي"] };
 
   // ---------- Dashboard ----------
   async function home(el, companyId) {
@@ -245,45 +244,45 @@
   }
 
   // ---------- Request tracking ----------
+  // Finishing a stage is a single update: database triggers start the next
+  // stage, log events, close the request and extend or add the document.
   async function request(el, id) {
     const svcs = await services();
     const [{ data: r }, { data: stages }, { data: events }] = await Promise.all([
-      sb.from("requests").select("*, offices(name), companies(name)").eq("id", id).maybeSingle(),
+      sb.from("requests").select("*, offices(name,phone), companies(name)").eq("id", id).maybeSingle(),
       sb.from("request_stages").select("*").eq("request_id", id).order("idx"),
       sb.from("events").select("*").eq("request_id", id).order("created_at"),
     ]);
     if (!r) { el.innerHTML = `<section class="panel"><p>الطلب ده مش موجود.</p></section>`; return; }
     const s = svcs[r.service_id], self = !r.office_id;
     const cur = stages.findIndex((x) => !x.done_at);
-    const EV = { created: "اتعمل الطلب", accepted: "المكتب قبل الطلب", stage_started: "بدأت مرحلة", stage_done: "خلصت مرحلة", done: "خلص الطلب", cancelled: "اتلغى الطلب", note: "ملاحظة" };
+    const open = !["done", "cancelled"].includes(r.status);
     el.innerHTML = `
       <section class="head"><a class="back" href="#home/${r.company_id}">→ لوحتي</a><span class="eyebrow">${esc(r.companies?.name || "")}</span><h1>${esc(s.title)}</h1>
         <p>${self ? "بتنفذ الطلب ده بنفسك، وتقدر تعلّم كل مرحلة لما تخلص." : `بينفذه ${esc(r.offices?.name || "")}. المكتب هو اللي بيحدّث المراحل.`}</p></section>
+      ${!self && r.status === "new" ? '<p class="alert">الطلب لسه مستني المكتب يقبله.</p>' : ""}
       <div class="grid2 wide">
         <section class="panel"><div class="row between"><h2>المراحل</h2><span class="chip ${STATUS[r.status][0]}">${STATUS[r.status][1]}</span></div>
-          <div class="track">${stages.map((x, i) => `<div class="tr ${x.done_at ? "done" : i === cur && r.status !== "cancelled" ? "now" : ""}"><span class="dot" aria-hidden="true"></span>
-            <div><p>${esc(x.title)}</p><small class="note">${x.done_at ? "خلصت " + fmtDate(x.done_at) : "المدة المتوقعة " + days(x.planned_days)}</small></div>
-            ${self && i === cur && r.status !== "cancelled" ? `<button class="btn small" data-stage="${x.id}" type="button">خلصت</button>` : ""}</div>`).join("")}</div>
+          <div class="track">${stages.map((x, i) => stageRow(x, i === cur && open, self && i === cur && open)).join("")}</div>
           ${r.status === "new" ? '<button class="btn danger small" id="cancel" type="button">الغي الطلب</button>' : ""}
         </section>
         <section class="panel"><h2>التفاصيل</h2>
           <div class="kv"><span>التكلفة المعلنة</span><b>${money(r.quoted_fee)}</b></div>
           <div class="kv"><span>المدة المعلنة</span><b>${days(r.quoted_days || 0)}</b></div>
           <div class="kv"><span>تاريخ الطلب</span><b>${fmtDate(r.created_at)}</b></div>
+          ${r.offices?.phone ? `<div class="kv"><span>تليفون المكتب</span><b class="ltr">${esc(r.offices.phone)}</b></div>` : ""}
+          <div id="files"></div>
           <h3 class="sub">السجل</h3>
-          ${events.map((e) => `<div class="kv"><span>${EV[e.kind] || esc(e.kind)}${e.note ? ": " + esc(e.note) : ""}</span><small>${fmtDate(e.created_at)}</small></div>`).join("")}
+          ${events.map((e) => `<div class="kv"><span>${EVENTS[e.kind] || esc(e.kind)}${e.note ? ": " + esc(e.note) : ""}</span><small>${fmtDate(e.created_at)}</small></div>`).join("")}
         </section>
       </div>`;
+    filesBlock(el.querySelector("#files"), id);
     el.querySelectorAll("[data-stage]").forEach((b) => b.addEventListener("click", async () => {
       b.disabled = true;
       const now = new Date().toISOString();
       const st = stages.find((x) => x.id === b.dataset.stage);
       const { error } = await sb.from("request_stages").update({ done_at: now, started_at: st.started_at || now }).eq("id", st.id);
       if (error) { b.disabled = false; return toast("ماقدرناش نحدّث المرحلة", true); }
-      await sb.from("events").insert({ request_id: id, actor_id: uid(), kind: "stage_done", note: st.title });
-      const last = stages.filter((x) => !x.done_at).length === 1;
-      await sb.from("requests").update(last ? { status: "done", completed_at: now } : { status: "in_progress" }).eq("id", id);
-      if (last) await finishRequest(r, svcs);
       request(el, id);
     }));
     el.querySelector("#cancel")?.addEventListener("click", async () => {
@@ -294,30 +293,16 @@
     });
   }
 
-  // Founding steps that produce an expiring document map to the renewal that keeps it valid.
-  const RENEWAL_OF = { commercial_register: "cr_renewal", tax_card: "tax_card_renewal", shop_license: "license_renewal" };
-
-  // A finished renewal moves the document's expiry forward; a finished founding
-  // step adds its document; the last founding step makes the company active.
-  async function finishRequest(r, svcs) {
-    const s = svcs[r.service_id];
-    if (r.document_id && s?.validity_days) {
-      const { data: d } = await sb.from("documents").select("expires_on").eq("id", r.document_id).single();
-      const base = new Date(Math.max(new Date(d.expires_on).getTime(), Date.now()));
-      const next = new Date(base.getTime() + s.validity_days * R.DAY).toISOString().slice(0, 10);
-      await sb.from("documents").update({ expires_on: next }).eq("id", r.document_id);
-      return;
-    }
-    const renewal = svcs[RENEWAL_OF[r.service_id]];
-    if (renewal && s?.validity_days) {
-      const exp = new Date(Date.now() + s.validity_days * R.DAY).toISOString().slice(0, 10);
-      await sb.from("documents").insert({ company_id: r.company_id, service_id: renewal.id, title: renewal.title.replace("تجديد ", ""), expires_on: exp });
-    }
-    if (s?.kind === "founding") {
-      const { data: open } = await sb.from("requests").select("id").eq("company_id", r.company_id).not("status", "in", "(done,cancelled)");
-      if (!open?.length) await sb.from("companies").update({ status: "active" }).eq("id", r.company_id);
-    }
+  // One row of the stage track, shared with the office screens.
+  function stageRow(x, isNow, canFinish) {
+    const late = isNow ? stageLate(x) : 0;
+    const note = x.done_at ? "خلصت " + fmtDate(x.done_at)
+      : late ? `متأخرة ${days(late)}` : "المدة المتوقعة " + days(x.planned_days);
+    return `<div class="tr ${x.done_at ? "done" : isNow ? "now" : ""}${late ? " late" : ""}"><span class="dot" aria-hidden="true"></span>
+      <div><p>${esc(x.title)}</p><small class="note">${note}</small></div>
+      ${canFinish ? `<button class="btn small" data-stage="${x.id}" type="button">خلصت</button>` : ""}</div>`;
   }
+  window.R.stageRow = stageRow;
 
   window.R.views.owner = { home, guide: guideView, plan, "company-new": companyNew, "doc-new": docNew, renew, request };
 })();
