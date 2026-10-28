@@ -1,6 +1,6 @@
 // Business-owner screens: dashboard, guide and plan, adding a company, renewals, request tracking.
 (function () {
-  const { sb, esc, fmtDate, num, money, days, toast, state, isPreview, services, docStatus, optionsFor, optionLabel, filesBlock, stageLate, EVENTS, STATUS, icon, span } = window.R;
+  const { sb, esc, fmtDate, num, money, days, toast, state, isPreview, services, docStatus, optionsFor, optionLabel, filesBlock, stageLate, EVENTS, STATUS, icon, span, optionCards } = window.R;
   const uid = () => state.profile.id;
 
   // ---------- Dashboard ----------
@@ -161,16 +161,19 @@
     return list;
   }
 
+  const ANSWER_ICONS = { alone: "person", many: "users", shop: "building", online: "pulse", factory: "building", s: "chart", m: "chart", l: "chart", yes: "users", no: "person" };
+
   function guideView(el) {
     const Q = QUESTIONS[guide.qi], val = guide.answers[Q.key];
     el.innerHTML = `
-      <section class="head"><span class="eyebrow">الدليل</span><h1>كام سؤال بسيط، وبعدها خريطتك جاهزة</h1></section>
-      <section class="panel">
-        <div class="progress" aria-hidden="true">${QUESTIONS.map((_, i) => `<span class="${i <= guide.qi ? "on" : ""}"></span>`).join("")}</div>
-        <p class="note">سؤال ${num(guide.qi + 1)} من ${num(QUESTIONS.length)}</p>
+      <section class="head"><span class="eyebrow">الدليل</span><h1>كام سؤال بسيط، وبعدها خريطتك جاهزة</h1>
+        <p>هنقترح عليك الكيان المناسب، والخطوات بالترتيب، وتكلفة ومدة كل خطوة.</p></section>
+      <section class="panel quiz">
+        <div class="row between"><span class="eyebrow">سؤال ${num(guide.qi + 1)} من ${num(QUESTIONS.length)}</span>
+          <div class="progress" aria-hidden="true">${QUESTIONS.map((_, i) => `<span class="${i <= guide.qi ? "on" : ""}"></span>`).join("")}</div></div>
         <h2 id="q-title">${Q.q}</h2>
         <div class="opts" role="radiogroup" aria-labelledby="q-title">${Q.opts.map(([v, b, s]) =>
-          `<label class="opt"><input type="radio" name="q" id="q-${v}" value="${v}" ${val === v ? "checked" : ""}><span><b>${b}</b><small>${s}</small></span></label>`).join("")}</div>
+          `<label class="opt"><input type="radio" name="q" id="q-${v}" value="${v}" ${val === v ? "checked" : ""}><span class="tile-ic">${icon(ANSWER_ICONS[v] || "check", 22)}</span><span><b>${b}</b><small>${s}</small></span></label>`).join("")}</div>
         <div class="row"><button class="btn primary" id="next" type="button" ${val ? "" : "disabled"}>${guide.qi === QUESTIONS.length - 1 ? "اعرض خريطتي" : "التالي"}</button>
           ${guide.qi ? '<button class="btn" id="prev" type="button">رجوع</button>' : ""}</div>
       </section>`;
@@ -192,18 +195,22 @@
       list.forEach((id) => { const o = pick(id); cost += o.cost; time += o.days; gov += Number(svcs[id].gov_fee); });
       el.innerHTML = `
         <section class="head"><span class="eyebrow">خريطتك</span><h1>${num(list.length)} خطوات توصلك لكيان رسمي</h1>
-          <p>افتح أي خطوة تشوف مستنداتها والجهة المسئولة، واختار تعملها بنفسك أو مين ينفذها.</p></section>
-        <section class="entity"><span class="eyebrow">الكيان المناسب ليك</span><h2>${e.name}</h2><p>${e.why}</p>
+          <p>الكيان المناسب ليك: <b class="on-navy">${e.name}</b>. ${e.why}</p>
           <div class="chips">${a.turnover !== "l" ? '<span class="chip on-navy">مؤهل للنظام الضريبي المبسط</span>' : ""}${a.turnover !== "s" ? '<span class="chip on-navy">مطلوب تسجيل القيمة المضافة</span>' : ""}</div></section>
-        <div class="grid2 wide">
-          <div class="steps">${list.map((id, i) => stepView(id, i)).join("")}</div>
-          <aside class="panel sum">
-            <h2>ملخص اختياراتك</h2>
+        <div class="kpis">
+          <div class="kpi"><span class="tile-ic">${icon("list", 22)}</span><div><b>${num(list.length)}</b><span>خطوات</span></div></div>
+          <div class="kpi"><span class="tile-ic ok">${icon("chart", 22)}</span><div><b>${money(cost)}</b><span>التكلفة التقريبية</span></div></div>
+          <div class="kpi"><span class="tile-ic warn">${icon("clock", 22)}</span><div><b>${days(time)}</b><span>المدة لو ورا بعض</span></div></div>
+        </div>
+        <div class="split">
+          <div class="split-main steps">${list.map((id, i) => stepView(id, i)).join("")}</div>
+          <aside class="split-side"><section class="panel sum">
+            <h2>ابدأ التنفيذ</h2>
             <div><div class="kv"><span>التكلفة التقريبية</span><b>${money(cost)}</b></div><div class="kv"><span>منها رسوم حكومية</span><b>${money(gov)}</b></div><div class="kv"><span>المدة لو الخطوات ورا بعض</span><b>${days(time)}</b></div></div>
             <div class="field"><label for="co-name">اسم مشروعك</label><input id="co-name" placeholder="مثلاً: مخبز النور" value="${esc(guide.name || "")}"></div>
             <button class="btn primary" id="launch" type="button">ابدأ التنفيذ</button>
             <p class="note">الأسعار من المكاتب المعتمدة، والرسوم الحكومية تقديرية وبتتأكد قبل الدفع.</p>
-          </aside>
+          </section></aside>
         </div>`;
       el.querySelectorAll("[data-open]").forEach((b) => b.addEventListener("click", () => { guide.open = guide.open === b.dataset.open ? null : b.dataset.open; draw(); }));
       el.querySelectorAll("input[data-step]").forEach((i) => i.addEventListener("change", () => { guide.choices[i.dataset.step] = i.value; draw(); }));
@@ -213,11 +220,12 @@
     const pick = (id) => opts[id].find((o) => o.key === guide.choices[id]) || opts[id][1] || opts[id][0];
     function stepView(id, i) {
       const s = svcs[id], open = guide.open === id, cur = pick(id);
-      return `<div class="step"><button type="button" class="step-h" data-open="${id}" aria-expanded="${open}"><span class="num">${num(i + 1)}</span>
-        <span class="t"><b>${esc(s.title)}</b><small>${esc(s.agency)} · ${esc(cur.label)} · ${days(cur.days)}</small></span><span aria-hidden="true">${open ? "−" : "+"}</span></button>
+      return `<div class="step${open ? " open" : ""}"><button type="button" class="step-h" data-open="${id}" aria-expanded="${open}"><span class="num">${num(i + 1)}</span>
+        <span class="t"><b>${esc(s.title)}</b><small>${esc(s.agency)}</small></span>
+        <span class="step-pick"><b>${money(cur.cost)}</b><small>${esc(cur.label)} · ${days(cur.days)}</small></span>
+        <span class="chev" aria-hidden="true">${icon("arrow", 18)}</span></button>
         ${open ? `<div class="step-b"><div class="docs"><b>المستندات المطلوبة</b><ul>${s.docs.map((d) => `<li>${esc(d)}</li>`).join("")}</ul></div>
-          <div class="alts" role="radiogroup" aria-label="البدائل">${opts[id].map((o) => `<label class="alt"><input type="radio" name="alt-${id}" data-step="${id}" value="${o.key}" ${cur.key === o.key ? "checked" : ""}>
-            <span class="n"><b>${esc(o.label)}</b><small>${optionLabel(o)}</small></span><span class="v"><b>${money(o.cost)}</b>${days(o.days)}</span></label>`).join("")}</div>
+          <b>مين ينفذها؟</b>${optionCards(opts[id], "alt-" + id, cur.key, `data-step="${id}"`)}
           ${opts[id].length === 1 ? '<p class="note">لسه مفيش مكتب مسعّر الخدمة دي.</p>' : ""}</div>` : ""}</div>`;
     }
     async function launch() {
@@ -243,16 +251,20 @@
     el.innerHTML = `
       <section class="head"><span class="eyebrow">شركة قائمة</span><h1>ضيف شركتك ومستنداتها</h1>
         <p>اكتب تاريخ انتهاء كل مستند، والمنصة هتحسب إمتى تبدأ تجديده.</p></section>
-      <form id="cf" class="panel">
-        <div class="form-row two">
-          <div class="field"><label for="c-name">اسم الشركة</label><input id="c-name" required></div>
-          <div class="field"><label for="c-form">الشكل القانوني</label><select id="c-form"><option>شركة ذات مسئولية محدودة</option><option>شركة الشخص الواحد</option><option>منشأة فردية</option><option>شركة مساهمة</option><option>شركة توصية بسيطة</option></select></div>
-        </div>
-        <h2>المستندات</h2>
-        ${types.map((t) => `<div class="form-row two"><div class="field"><label>${esc(t.title.replace("تجديد ", ""))}</label><p class="note">${esc(t.agency)}</p></div>
-          <div class="field"><label for="exp-${t.id}">تاريخ الانتهاء</label><input type="date" id="exp-${t.id}"></div></div>`).join("")}
-        <p class="note">سيب التاريخ فاضي لو الشركة مالهاش المستند ده.</p>
-        <button class="btn primary" type="submit">احفظ الشركة</button>
+      <form id="cf" class="stack">
+        <section class="panel">
+          <h2>بيانات الشركة</h2>
+          <div class="form-row two">
+            <div class="field"><label for="c-name">اسم الشركة</label><input id="c-name" required></div>
+            <div class="field"><label for="c-form">الشكل القانوني</label><select id="c-form"><option>شركة ذات مسئولية محدودة</option><option>شركة الشخص الواحد</option><option>منشأة فردية</option><option>شركة مساهمة</option><option>شركة توصية بسيطة</option></select></div>
+          </div>
+        </section>
+        <section class="panel">
+          <div class="row between"><h2>المستندات</h2><span class="note">سيب التاريخ فاضي لو الشركة مالهاش المستند</span></div>
+          <div class="doc-inputs">${types.map((t) => `<div class="doc-input"><span class="tile-ic">${icon("doc", 22)}</span>
+            <div class="field"><label for="exp-${t.id}">${esc(t.title.replace("تجديد ", ""))}</label><small class="note">${esc(t.agency)} · تاريخ الانتهاء</small><input type="date" id="exp-${t.id}"></div></div>`).join("")}</div>
+          <button class="btn primary" type="submit">احفظ الشركة</button>
+        </section>
       </form>`;
     el.querySelector("#cf").addEventListener("submit", async (ev) => {
       ev.preventDefault();
@@ -290,12 +302,22 @@
     if (!d) { el.innerHTML = `<section class="panel"><p>المستند ده مش موجود.</p></section>`; return; }
     const s = svcs[d.service_id], opts = await optionsFor(d.service_id);
     let pick = opts[1]?.key || "self";
+    const st = docStatus(d, s);
+    const when = st.left === null ? "" : st.left < 0 ? `انتهى من ${span(-st.left)}` : `ينتهي بعد ${span(st.left)}`;
     const draw = () => {
-      el.innerHTML = `<section class="head"><a class="back" href="#home/${d.company_id}">→ لوحتي</a><span class="eyebrow">${esc(d.companies.name)}</span><h1>${esc(s.title)}</h1></section>
-        <section class="panel"><div class="docs"><b>جهّز المستندات دي</b><ul>${s.docs.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>
-          <div class="alts">${opts.map((o) => `<label class="alt"><input type="radio" name="alt" value="${o.key}" ${pick === o.key ? "checked" : ""}>
-            <span class="n"><b>${esc(o.label)}</b><small>${optionLabel(o)}</small></span><span class="v"><b>${money(o.cost)}</b>${days(o.days)}</span></label>`).join("")}</div>
-          <button class="btn primary" id="go" type="button">أكّد الطلب</button></section>`;
+      const o = opts.find((x) => x.key === pick);
+      el.innerHTML = `<section class="head"><a class="back" href="#home/${d.company_id}">→ لوحتي</a><span class="eyebrow">${esc(d.companies.name)}</span><h1>${esc(s.title)}</h1>
+          <p>${when ? `${esc(d.title)}: ${when}. ` : ""}قارن واختار مين ينفذ التجديد.</p></section>
+        <div class="split">
+          <section class="panel split-main"><h2>اختار مين ينفذ</h2>
+            ${optionCards(opts, "alt", pick)}
+            <div class="confirm"><span>${esc(o.label)} · <b>${money(o.cost)}</b> · ${days(o.days)}</span><button class="btn primary" id="go" type="button">أكّد الطلب</button></div>
+          </section>
+          <aside class="split-side">
+            <section class="panel"><h2>جهّز المستندات دي</h2><ul class="checklist">${s.docs.map((x) => `<li>${icon("check", 16)}${esc(x)}</li>`).join("")}</ul></section>
+            <section class="panel"><h2>إزاي اخترنا الترتيب</h2><p class="note">التقييم من أصحاب الأعمال بعد كل طلب، ونسبة الالتزام بالمواعيد محسوبة من تواريخ الطلبات نفسها.</p></section>
+          </aside>
+        </div>`;
       el.querySelectorAll('input[name="alt"]').forEach((i) => i.addEventListener("change", () => { pick = i.value; draw(); }));
       el.querySelector("#go").addEventListener("click", async () => {
         const o = opts.find((x) => x.key === pick);
@@ -325,26 +347,38 @@
     const { data: rating } = canRate ? await sb.from("ratings").select("*").eq("request_id", id).maybeSingle() : { data: null };
     const cur = stages.findIndex((x) => !x.done_at);
     const open = !["done", "cancelled"].includes(r.status);
+    const doneCount = stages.filter((x) => x.done_at).length;
+    const due = new Date(new Date(r.accepted_at || r.created_at).getTime() + (r.quoted_days || 0) * R.DAY);
+    const lateNow = cur >= 0 && open ? stageLate(stages[cur]) : 0;
     el.innerHTML = `
       <section class="head"><a class="back" href="#home/${r.company_id}">→ لوحتي</a><span class="eyebrow">${esc(r.companies?.name || "")}</span><h1>${esc(s.title)}</h1>
         <p>${self ? "بتنفذ الطلب ده بنفسك، وتقدر تعلّم كل مرحلة لما تخلص." : `بينفذه ${esc(r.offices?.name || "")}. المكتب هو اللي بيحدّث المراحل.`}</p></section>
+      <div class="kpis">
+        <div class="kpi ${STATUS[r.status][0]}"><span class="tile-ic ${STATUS[r.status][0]}">${icon(r.status === "done" ? "check" : "pulse", 22)}</span><div><b>${STATUS[r.status][1]}</b><span>الحالة</span></div></div>
+        <div class="kpi ${lateNow ? "bad" : ""}"><span class="tile-ic ${lateNow ? "bad" : ""}">${icon("list", 22)}</span><div><b>${num(doneCount)} من ${num(stages.length)}</b><span>${lateNow ? `المرحلة متأخرة ${days(lateNow)}` : "مراحل خلصت"}</span></div></div>
+        <div class="kpi"><span class="tile-ic ok">${icon("chart", 22)}</span><div><b>${money(r.quoted_fee)}</b><span>التكلفة المعلنة</span></div></div>
+        <div class="kpi"><span class="tile-ic warn">${icon("clock", 22)}</span><div><b>${r.status === "done" ? fmtDate(r.completed_at) : fmtDate(due)}</b><span>${r.status === "done" ? "خلص يوم" : "الموعد المتوقع"}</span></div></div>
+      </div>
       ${!self && r.status === "new" ? '<p class="alert">الطلب لسه مستني المكتب يقبله.</p>' : ""}
       ${r.escalated_at && open ? '<p class="alert">الإدارة اتبلغت بالتأخير ده وبتتابعه مع المكتب.</p>' : ""}
-      ${canRate ? rateBlock(rating, r.offices?.name) : ""}
-      <div class="grid2 wide">
-        <section class="panel"><div class="row between"><h2>المراحل</h2><span class="chip ${STATUS[r.status][0]}">${STATUS[r.status][1]}</span></div>
-          <div class="track">${stages.map((x, i) => stageRow(x, i === cur && open, self && i === cur && open)).join("")}</div>
-          ${r.status === "new" ? '<button class="btn danger small" id="cancel" type="button">الغي الطلب</button>' : ""}
-        </section>
-        <section class="panel"><h2>التفاصيل</h2>
-          <div class="kv"><span>التكلفة المعلنة</span><b>${money(r.quoted_fee)}</b></div>
-          <div class="kv"><span>المدة المعلنة</span><b>${days(r.quoted_days || 0)}</b></div>
-          <div class="kv"><span>تاريخ الطلب</span><b>${fmtDate(r.created_at)}</b></div>
-          ${r.offices?.phone ? `<div class="kv"><span>تليفون المكتب</span><b class="ltr">${esc(r.offices.phone)}</b></div>` : ""}
-          <div id="files"></div>
-          <h3 class="sub">السجل</h3>
-          ${events.map((e) => `<div class="kv"><span>${EVENTS[e.kind] || esc(e.kind)}${e.note ? ": " + esc(e.note) : ""}</span><small>${fmtDate(e.created_at)}</small></div>`).join("")}
-        </section>
+      <div class="split">
+        <div class="split-main">
+          ${canRate ? rateBlock(rating, r.offices?.name) : ""}
+          <section class="panel"><h2>المراحل</h2>
+            <div class="track">${stages.map((x, i) => stageRow(x, i === cur && open, self && i === cur && open)).join("")}</div>
+            ${r.status === "new" ? '<button class="btn danger small" id="cancel" type="button">الغي الطلب</button>' : ""}
+          </section>
+        </div>
+        <aside class="split-side">
+          ${self ? "" : `<section class="panel"><div class="row"><span class="avatar">${esc((r.offices?.name || "م").replace(/^مكتب\s+/, "").charAt(0))}</span>
+            <span class="grow"><b>${esc(r.offices?.name || "")}</b><small class="note">المكتب المنفذ</small></span></div>
+            ${r.offices?.phone ? `<a class="btn" href="tel:${esc(r.offices.phone)}"><span class="ltr">${esc(r.offices.phone)}</span></a>` : ""}</section>`}
+          <section class="panel" id="files"></section>
+          <section class="panel"><h2>السجل</h2>
+            ${events.slice().reverse().map((e) => `<div class="feed"><span class="dot ${["declined", "cancelled"].includes(e.kind) ? "bad" : e.kind === "note" || e.kind === "file" ? "warn" : ""}" aria-hidden="true"></span>
+              <span><b>${EVENTS[e.kind] || esc(e.kind)}</b><small>${e.note ? esc(e.note) + " · " : ""}${fmtDate(e.created_at)}</small></span></div>`).join("")}
+          </section>
+        </aside>
       </div>`;
     filesBlock(el.querySelector("#files"), id);
     el.querySelector("#rate")?.addEventListener("submit", async (e) => {

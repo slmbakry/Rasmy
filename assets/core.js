@@ -127,6 +127,21 @@
     return parts.join(" · ");
   }
 
+  // The doers for one service as radio cards, marked cheapest, fastest and best rated.
+  function optionCards(opts, name, picked, attrs = "") {
+    const min = (f) => Math.min(...opts.map(f));
+    const cheap = min((o) => o.cost), fast = min((o) => o.days);
+    const rated = opts.filter((o) => o.count).sort((a, b) => b.pro + b.speed - (a.pro + a.speed))[0];
+    return `<div class="opt-cards" role="radiogroup">${opts.map((o) => {
+      const tags = [o.cost === cheap && "الأرخص", o.days === fast && "الأسرع", rated && o.key === rated.key && "الأعلى تقييماً"].filter(Boolean);
+      return `<label class="opt-card${o.key === picked ? " on" : ""}"><input type="radio" name="${name}" value="${o.key}" ${attrs} ${o.key === picked ? "checked" : ""}>
+        <span class="oc-top"><span class="avatar">${o.officeId ? esc(o.label.replace(/^مكتب\s+/, "").charAt(0)) : icon("person")}</span>
+          <span class="oc-n"><b>${esc(o.label)}</b><small>${optionLabel(o)}</small></span></span>
+        ${tags.length ? `<span class="chips">${tags.map((t) => `<span class="chip ok">${t}</span>`).join("")}</span>` : ""}
+        <span class="oc-v"><span><small>التكلفة</small><b>${money(o.cost)}</b></span><span><small>المدة</small><b>${days(o.days)}</b></span></span></label>`;
+    }).join("")}</div>`;
+  }
+
   // Stroke icons, sized by the surrounding text and colored with currentColor.
   const ICONS = {
     check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
@@ -156,5 +171,5 @@
   const STATUS = { new: ["", "جديد"], accepted: ["", "المكتب قبله"], in_progress: ["warn", "جاري التنفيذ"], done: ["ok", "تم"], cancelled: ["", "ملغي"] };
 
   window.R = { sb, DAY, esc, fmtDate, num, money, days, today, toast, state, role, isPreview, writeViewAs, writePreviewOffice, officeId,
-    services, docStatus, optionsFor, optionLabel, filesBlock, stageLate, EVENTS, STATUS, icon, span, views: {} };
+    services, docStatus, optionsFor, optionLabel, filesBlock, stageLate, EVENTS, STATUS, icon, span, optionCards, views: {} };
 })();
