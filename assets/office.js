@@ -1,6 +1,6 @@
 // Office screens: incoming requests, accepting or declining, finishing stages, files and notes.
 (function () {
-  const { sb, esc, fmtDate, num, money, days, toast, state, officeId, services, filesBlock, stageLate, EVENTS, STATUS } = window.R;
+  const { sb, esc, fmtDate, num, money, days, toast, state, officeId, services, filesBlock, stageLate, EVENTS, STATUS, icon } = window.R;
   const uid = () => state.profile.id;
 
   function noOffice(el) {
@@ -29,14 +29,18 @@
     el.innerHTML = `
       <section class="head"><span class="eyebrow">${esc(office?.name || "المكتب")}</span><h1>الطلبات</h1>
         <p>اقبل الطلب الأول، وبعدها علّم كل مرحلة لما تخلص. صاحب العمل بيشوف التحديث في نفس اللحظة.</p></section>
-      <div class="cards">
-        <div class="card"><b>${num(groups[0][2].length)}</b><span>جديد</span></div>
-        <div class="card"><b>${num(groups[1][2].length)}</b><span>شغال</span></div>
-        <div class="card"><b>${num(lateCount)}</b><span>متأخر</span></div>
-        <div class="card"><b>${num(all.filter((r) => r.status === "done").length)}</b><span>خلص</span></div>
+      <div class="kpis">
+        ${kpi("mail", groups[0][2].length ? "warn" : "", groups[0][2].length, "طلب جديد")}
+        ${kpi("list", "", groups[1][2].length, "شغال عليه")}
+        ${kpi("alert", lateCount ? "bad" : "ok", lateCount, "متأخر")}
+        ${kpi("check", "ok", all.filter((r) => r.status === "done").length, "خلص")}
       </div>
       ${groups.map(([k, title, list]) => `<section class="panel"><h2>${title}</h2>
         ${list.length ? `<div class="reqs">${list.map((r) => card(r, svcs)).join("")}</div>` : `<p class="empty">${k === "new" ? "مفيش طلبات جديدة." : "مفيش حاجة هنا."}</p>`}</section>`).join("")}`;
+  }
+
+  function kpi(ic, tone, n, label) {
+    return `<div class="kpi ${tone}"><span class="tile-ic ${tone}">${icon(ic, 22)}</span><div><b>${num(n)}</b><span>${label}</span></div></div>`;
   }
 
   // Days late on the stage in progress, if any.

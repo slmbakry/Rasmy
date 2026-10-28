@@ -1,9 +1,11 @@
 // Business-owner screens: dashboard, guide and plan, adding a company, renewals, request tracking.
 (function () {
-  const { sb, esc, fmtDate, num, money, days, toast, state, isPreview, services, docStatus, optionsFor, optionLabel, filesBlock, stageLate, EVENTS, STATUS } = window.R;
+  const { sb, esc, fmtDate, num, money, days, toast, state, isPreview, services, docStatus, optionsFor, optionLabel, filesBlock, stageLate, EVENTS, STATUS, icon, span } = window.R;
   const uid = () => state.profile.id;
 
   // ---------- Dashboard ----------
+  // One company at a time: a navy summary band, what needs the owner now,
+  // documents with how much validity is left, and requests stage by stage.
   async function home(el, companyId) {
     el.innerHTML = `<div class="loading">جاري التحميل</div>`;
     const svcs = await services();
@@ -13,60 +15,124 @@
         <section class="head"><span class="eyebrow">لوحتي</span><h1>ابدأ بأول شركة</h1>
           <p>لو عندك مشروع جديد، الدليل هيوريك خطواتك. ولو عندك شركة قائمة، ضيفها بمستنداتها وتواريخ انتهائها، والمنصة هتفكرك قبل كل تجديد.</p></section>
         <div class="choices">
-          <a class="choice" href="#guide"><span class="eyebrow">تأسيس</span><h3>عندي فكرة أو مشروع مش مسجل</h3><p>كام سؤال، وبعدها خريطة خطواتك بالتكلفة والمدة.</p></a>
-          <a class="choice" href="#company-new"><span class="eyebrow">تشغيل</span><h3>عندي شركة قائمة</h3><p>ضيف مستنداتها، وتابع تجديداتها من مكان واحد.</p></a>
+          <a class="choice" href="#guide"><span class="tile-ic">${icon("pulse", 24)}</span><h3>عندي فكرة أو مشروع مش مسجل</h3><p>كام سؤال، وبعدها خريطة خطواتك بالتكلفة والمدة.</p></a>
+          <a class="choice" href="#company-new"><span class="tile-ic ok">${icon("building", 24)}</span><h3>عندي شركة قائمة</h3><p>ضيف مستنداتها، وتابع تجديداتها من مكان واحد.</p></a>
         </div>`;
       return;
     }
-    const ids = companies.map((c) => c.id);
-    const [{ data: docs }, { data: reqs }] = await Promise.all([
-      sb.from("documents").select("*").in("company_id", ids).order("expires_on", { nullsFirst: false }),
-      sb.from("requests").select("*, offices(name), request_stages(done_at)").in("company_id", ids).order("created_at", { ascending: false }),
-    ]);
     const co = companies.find((c) => c.id === companyId) || companies[0];
-    const coDocs = (docs || []).filter((d) => d.company_id === co.id);
-    const openReqs = (reqs || []).filter((r) => r.company_id === co.id && !["done", "cancelled"].includes(r.status));
-    const doneReqs = (reqs || []).filter((r) => r.company_id === co.id && r.status === "done").slice(0, 5);
-    const all = (docs || []).map((d) => docStatus(d, svcs[d.service_id]));
-    const c = (k) => all.filter((x) => x.cls === k).length;
-    const openFor = (docId) => (reqs || []).find((r) => r.document_id === docId && !["done", "cancelled"].includes(r.status));
+    const [{ data: docs }, { data: reqs }, { data: notes }] = await Promise.all([
+      sb.from("documents").select("*").eq("company_id", co.id).order("expires_on", { nullsFirst: false }),
+      sb.from("requests").select("*, offices(name), request_stages(idx,title,planned_days,started_at,done_at)").eq("company_id", co.id).order("created_at", { ascending: false }),
+      sb.from("notifications").select("*").eq("user_id", uid()).order("created_at", { ascending: false }).limit(4),
+    ]);
+    const open = (reqs || []).filter((r) => !["done", "cancelled"].includes(r.status));
+    const doneWithOffice = (reqs || []).filter((r) => r.status === "done" && r.office_id);
+    const { data: rated } = doneWithOffice.length ? await sb.from("ratings").select("request_id").in("request_id", doneWithOffice.map((r) => r.id)) : { data: [] };
+    const ratedIds = new Set((rated || []).map((x) => x.request_id));
+    const toRate = doneWithOffice.find((r) => !ratedIds.has(r.id));
+    const openFor = (docId) => open.find((r) => r.document_id === docId);
+
+    const list = (docs || []).map((d) => {
+      const svc = svcs[d.service_id], st = docStatus(d, svc), req = openFor(d.id);
+      return { d, svc, st, req, cls: req ? "busy" : st.cls };
+    });
+    const count = (k) => list.filter((x) => x.cls === k).length;
+    const healthy = count("ok");
+
+    // What the owner should do, most urgent first.
+    const todo = [];
+    list.filter((x) => x.cls === "bad").forEach((x) => todo.push({ tone: "bad", ic: "alert", title: `${x.d.title}: انتهت صلاحيته من ${span(-x.st.left)}`,
+      sub: "جدده في أسرع وقت عشان ماتتعرضش لغرامة", href: x.svc?.kind === "renewal" ? `#renew/${x.d.id}` : null, cta: "جدد دلوقتي" }));
+    list.filter((x) => x.cls === "warn").forEach((x) => todo.push({ tone: "warn", ic: "clock", title: `ابدأ تجديد ${x.d.title}`,
+      sub: `ينتهي بعد ${span(x.st.left)}، والتجديد بياخد وقت`, href: x.svc?.kind === "renewal" ? `#renew/${x.d.id}` : null, cta: "اطلب التجديد" }));
+    open.filter((r) => !r.office_id).forEach((r) => todo.push({ tone: "warn", ic: "arrow", title: `${svcs[r.service_id]?.title || ""}: خطوة عندك`,
+      sub: "بتعمله بنفسك، علّم كل مرحلة لما تخلص", href: `#request/${r.id}`, cta: "كمّل الخطوة", soft: true }));
+    open.filter((r) => r.status === "new" && r.office_id && Date.now() - new Date(r.created_at) > R.DAY).forEach((r) => todo.push({ tone: "info", ic: "clock",
+      title: `${r.offices?.name || "المكتب"} لسه مارد`, sub: `${svcs[r.service_id]?.title || ""} · تقدر تلغي وتختار مكتب تاني`, href: `#request/${r.id}`, cta: "افتح الطلب", soft: true }));
+
+    const ring = list.length ? Math.round((healthy / list.length) * 163) : 0;
+    const summary = !list.length ? "لسه مفيش مستندات للشركة دي."
+      : count("bad") || count("warn") ? [count("bad") && `${num(count("bad"))} منتهي`, count("warn") && `${num(count("warn"))} قرب ينتهي`, count("busy") && `${num(count("busy"))} بيتجدد`].filter(Boolean).join("، ") + ". التفاصيل تحت، وجنب كل واحد الخطوة الجاية."
+      : "كل مستنداتك سليمة. هنفكرك قبل أي تجديد بوقت كفاية.";
 
     el.innerHTML = `
-      <section class="head"><span class="eyebrow">لوحتي</span><h1>شركاتك ومستنداتها في مكان واحد</h1>
-        <p>المنصة بتحسب موعد بدء كل تجديد من مدة تنفيذه، عشان المستند الجديد يوصل قبل ما الحالي يخلص.</p></section>
-      <div class="cards">
-        <div class="card"><b>${num(companies.length)}</b><span>شركات</span></div>
-        <div class="card ok"><b>${num(c("ok"))}</b><span>مستندات سليمة</span></div>
-        <div class="card warn"><b>${num(c("warn"))}</b><span>تجديد قريب</span></div>
-        <div class="card bad"><b>${num(c("bad"))}</b><span>منتهية</span></div>
+      <section class="head hero">
+        <div class="tabs" role="tablist" aria-label="شركاتك">${companies.map((x) => `<a class="tab" role="tab" aria-selected="${x.id === co.id}" href="#home/${x.id}">${esc(x.name)}${x.is_demo ? " · تجريبي" : ""}</a>`).join("")}
+          <a class="tab add" href="#company-new">+ شركة جديدة</a></div>
+        <div class="hero-row">
+          <div class="hero-t"><span class="eyebrow">${esc(co.legal_form || "")}${co.status === "founding" ? " · تحت التأسيس" : " · نشطة"}</span>
+            <h1>${esc(co.name)}</h1><p>${summary}</p></div>
+          ${list.length ? `<div class="ring"><svg width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="${num(healthy)} من ${num(list.length)} مستندات سليمة"><circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="7"/><circle cx="32" cy="32" r="26" fill="none" stroke="#1F9D74" stroke-width="7" stroke-linecap="round" stroke-dasharray="${ring} 163" transform="rotate(-90 32 32)"/></svg>
+            <div><b>${num(healthy)} من ${num(list.length)}</b><span>مستندات سليمة</span></div></div>` : ""}
+        </div>
+      </section>
+      <div class="kpis">
+        ${kpi("docOk", "ok", healthy, "مستندات سليمة")}${kpi("clock", "warn", count("warn") + count("busy"), "تجديد قريب")}${kpi("alert", "bad", count("bad"), "منتهي")}${kpi("list", "", open.length, "طلبات شغالة")}
       </div>
-      <div class="tabs" role="tablist" aria-label="الشركات">${companies.map((x) => `<a class="tab" role="tab" aria-selected="${x.id === co.id}" href="#home/${x.id}">${esc(x.name)}${x.is_demo ? " · تجريبي" : ""}</a>`).join("")}</div>
-      <div class="grid2 wide">
-        <section class="panel">
-          <div class="row between"><h2>${esc(co.name)}</h2><span class="chip">${esc(co.legal_form || "")}${co.status === "founding" ? " · تحت التأسيس" : ""}</span></div>
-          ${coDocs.length ? coDocs.map((d) => {
-            const st = docStatus(d, svcs[d.service_id]), open = openFor(d.id);
-            const when = st.left === null ? "" : st.left < 0 ? `انتهى من ${days(-st.left)}` : `ينتهي ${fmtDate(d.expires_on)} · باقي ${days(st.left)}`;
-            const hint = open ? "طلب التجديد شغال" : st.cls === "ok" && st.startOn ? `التذكير هيوصلك ${fmtDate(st.startOn)}` : "";
-            return `<div class="doc ${open ? "busy" : st.cls}"><span class="stripe" aria-hidden="true"></span>
-              <div class="t"><b>${esc(d.title)}</b><small>${when}</small>${hint ? `<small>${hint}</small>` : ""}</div>
-              <div class="act">${open ? `<a class="chip" href="#request/${open.id}">جاري التجديد</a>` : `<span class="chip ${st.cls}">${st.label}</span>`}
-              ${!open && svcs[d.service_id]?.kind === "renewal" && st.cls !== "ok" ? `<a class="btn primary small" href="#renew/${d.id}">اطلب التجديد</a>` : ""}</div></div>`;
-          }).join("") : `<p class="empty">مفيش مستندات لسه. ${co.status === "founding" ? "هتظهر هنا أول ما خطوات التأسيس تخلص." : ""}</p>`}
-          <a class="btn small" href="#doc-new/${co.id}">ضيف مستند</a>
-        </section>
-        <section class="panel">
-          <h2>الطلبات الشغالة</h2>
-          ${openReqs.length ? openReqs.map(reqCard).join("") : `<p class="empty">مفيش طلبات شغالة.</p>`}
-          ${doneReqs.length ? `<h3 class="sub">خلصت مؤخراً</h3>${doneReqs.map(reqCard).join("")}` : ""}
-        </section>
+      <div class="split">
+        <div class="split-main">
+          <section class="panel">
+            <div class="row between"><h2>المطلوب منك دلوقتي</h2>${todo.length ? '<span class="note">مرتب حسب الأهمية</span>' : ""}</div>
+            ${todo.length ? todo.map((t) => `<div class="todo ${t.tone}"><span class="todo-ic">${icon(t.ic)}</span>
+              <div class="todo-t"><b>${esc(t.title)}</b><small>${esc(t.sub)}</small></div>
+              ${t.href ? `<a class="btn ${t.soft ? "" : t.tone === "bad" ? "danger-solid" : "primary"}" href="${t.href}">${t.cta}</a>` : ""}</div>`).join("")
+              : `<div class="todo ok"><span class="todo-ic">${icon("check")}</span><div class="todo-t"><b>مفيش حاجة مطلوبة منك دلوقتي</b><small>هنبعتلك تنبيه أول ما حاجة تحتاجك.</small></div></div>`}
+          </section>
+          <section class="panel">
+            <div class="row between"><h2>المستندات</h2><a class="link" href="#doc-new/${co.id}">+ ضيف مستند</a></div>
+            ${list.length ? `<div class="doc-grid">${list.map(docCard).join("")}</div>`
+              : `<p class="empty">${co.status === "founding" ? "المستندات هتظهر هنا أول ما خطوات التأسيس تخلص." : "ضيف السجل والبطاقة الضريبية والتراخيص، وإحنا هنفكرك قبل كل تجديد."}</p>`}
+          </section>
+          <section class="panel">
+            <div class="row between"><h2>طلبات شغالة</h2><span class="note">بتتحدث مع كل خطوة</span></div>
+            ${open.length ? open.map(reqCard).join("") : '<p class="empty">مفيش طلبات شغالة.</p>'}
+          </section>
+        </div>
+        <aside class="split-side">
+          <section class="panel">
+            <div class="row between"><h2>آخر التحديثات</h2><a class="link" href="#alerts">الكل</a></div>
+            ${notes?.length ? notes.map((n) => `<a class="feed" href="${esc(n.link || "#alerts")}"><span class="dot ${feedTone(n.kind)}" aria-hidden="true"></span>
+              <span><b>${esc(n.title)}</b><small>${esc(n.body || "")}${n.body ? " · " : ""}${fmtDate(n.created_at)}</small></span></a>`).join("")
+              : '<p class="empty">مفيش تحديثات لسه.</p>'}
+          </section>
+          ${toRate ? `<section class="panel navy"><span class="tile-ic gold">${icon("star")}</span><h2>قيّم ${esc(toRate.offices?.name || "المكتب")}</h2>
+            <p>خلّص ${esc(svcs[toRate.service_id]?.title || "طلبك")}. رأيك بيساعد غيرك يختار.</p><a class="btn gold" href="#request/${toRate.id}">قيّم دلوقتي</a></section>` : ""}
+          ${companies.length > 1 ? "" : `<section class="panel"><span class="tile-ic">${icon("plus")}</span><h2>عندك شركة تانية؟</h2><p class="note">ضيفها وتابع مستنداتها من نفس المكان.</p><a class="btn" href="#company-new">ضيف شركة</a></section>`}
+        </aside>
       </div>`;
 
+    function kpi(ic, tone, n, label) {
+      return `<div class="kpi ${tone}"><span class="tile-ic ${tone}">${icon(ic, 22)}</span><div><b>${num(n)}</b><span>${label}</span></div></div>`;
+    }
+    function feedTone(kind) {
+      return ["late", "overdue", "expired", "escalated", "declined"].includes(kind) ? "bad" : ["renew", "wait"].includes(kind) ? "warn" : "ok";
+    }
+    function docCard(x) {
+      const { d, svc, st, req, cls } = x;
+      const label = { ok: "سليم", warn: "جدد قريب", bad: "منتهي", busy: "بيتجدد" }[cls];
+      const pct = st.left === null ? 100 : st.left <= 0 ? 0 : Math.max(4, Math.min(100, Math.round((st.left / (svc?.validity_days || 365)) * 100)));
+      const when = st.left === null ? "مالوش تاريخ انتهاء" : st.left < 0 ? `انتهى من ${span(-st.left)}` : `ينتهي بعد ${span(st.left)}`;
+      return `<a class="doc-card ${cls}" href="${req ? `#request/${req.id}` : svc?.kind === "renewal" && cls !== "ok" ? `#renew/${d.id}` : `#home/${co.id}`}">
+        <div class="row between"><b>${esc(d.title)}</b><span class="chip ${cls === "busy" ? "warn" : cls}">${label}</span></div>
+        <div class="bar-v" aria-hidden="true"><i style="width:${pct}%"></i></div>
+        <small>${when}${req ? ` · ${esc(req.offices?.name || "بتجدده بنفسك")}` : cls === "ok" && st.startOn ? ` · التذكير ${fmtDate(st.startOn)}` : ""}</small></a>`;
+    }
     function reqCard(r) {
-      const s = svcs[r.service_id], total = r.request_stages.length, done = r.request_stages.filter((x) => x.done_at).length;
-      const pct = total ? Math.round((done / total) * 100) : 0;
-      return `<a class="req" href="#request/${r.id}"><div class="row between"><b>${esc(s?.title || r.service_id)}</b><span class="chip ${STATUS[r.status][0]}">${STATUS[r.status][1]}</span></div>
-        <small>${esc(r.offices?.name || "بتنفذه بنفسك")} · ${num(done)} من ${num(total)} مراحل</small><div class="meter"><i style="width:${pct}%"></i></div></a>`;
+      const s = svcs[r.service_id], st = (r.request_stages || []).slice().sort((a, b) => a.idx - b.idx);
+      const cur = st.find((x) => !x.done_at), late = cur && ["accepted", "in_progress"].includes(r.status) ? stageLate(cur) : 0;
+      const chip = r.status === "new" && r.office_id ? ["", "مستني رد المكتب"] : late ? ["bad", `متأخر ${days(late)}`] : !r.office_id ? ["warn", "خطوة عندك"] : ["ok", "في الموعد"];
+      const seg = (x) => {
+        if (x.done_at) return 100;
+        if (x !== cur || !x.started_at) return 0;
+        return Math.max(8, Math.min(92, Math.round(((Date.now() - new Date(x.started_at)) / (x.planned_days * R.DAY)) * 100)));
+      };
+      return `<a class="req-card" href="#request/${r.id}">
+        <div class="row"><span class="avatar">${r.office_id ? esc((r.offices?.name || "م").replace(/^مكتب\s+/, "").charAt(0)) : icon("person")}</span>
+          <span class="grow"><b>${esc(s?.title || r.service_id)}</b><small>${r.office_id ? esc(r.offices?.name || "") : "بتعمله بنفسك"} · ${money(r.quoted_fee)}</small></span>
+          <span class="chip ${chip[0]}">${chip[1]}</span></div>
+        ${st.length ? `<div class="segs">${st.map((x) => `<div class="seg ${x === cur ? (late ? "late" : "now") : x.done_at ? "done" : ""}"><span><i style="width:${seg(x)}%"></i></span><small>${esc(x.title)}</small></div>`).join("")}</div>` : ""}
+      </a>`;
     }
   }
 

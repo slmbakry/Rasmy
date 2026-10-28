@@ -1,6 +1,6 @@
 // Admin screens: overview, invites, offices and their prices, users.
 (function () {
-  const { sb, DAY, esc, fmtDate, num, days, toast, state, services, stageLate } = window.R;
+  const { sb, DAY, esc, fmtDate, num, days, toast, state, services, stageLate, icon } = window.R;
   const ROLES = { owner: "صاحب عمل", office: "مكتب", admin: "مدير" };
 
   // ---------- Overview: what needs attention ----------
@@ -31,6 +31,9 @@
       took, onTime: took === null ? null : took <= (r.quoted_days || 0) + 0.5 };
   }
 
+  const kpi = (ic, tone, value, label) =>
+    `<div class="kpi ${tone}"><span class="tile-ic ${tone}">${icon(ic, 22)}</span><div><b>${value}</b><span>${label}</span></div></div>`;
+
   function demoSwitch() {
     const on = readDemo();
     return `<div class="tabs" role="tablist"><button class="tab" type="button" role="tab" data-demo="0" aria-selected="${!on}">البيانات الحقيقية</button>
@@ -55,15 +58,14 @@
     const who = (r) => esc(r.offices?.name || "صاحب العمل بنفسه");
     el.innerHTML = `
       <section class="head"><span class="eyebrow">لوحة المدير</span><h1>نظرة سريعة</h1>
-        <p>هنا بتشوف الطلبات المتأخرة والمكاتب اللي ماردتش. تقدر كمان تجرب المنصة كصاحب عمل أو كمكتب من الشريط اللي فوق.</p></section>
-      ${demoSwitch()}
-      <div class="cards">
-        <div class="card"><b>${num(open.length)}</b><span>طلب مفتوح</span></div>
-        <div class="card ${late.length ? "bad" : "ok"}"><b>${num(late.length)}</b><span>طلب متأخر</span></div>
-        <div class="card ${waiting.length ? "warn" : "ok"}"><b>${num(waiting.length)}</b><span>مستني رد المكتب</span></div>
-        <div class="card"><b>${onTime === null ? "—" : num(onTime) + "٪"}</b><span>خلصت في موعدها</span></div>
-        <div class="card"><b>${num(users)}</b><span>مستخدم</span></div>
-        <div class="card"><b>${num(pending)}</b><span>دعوة مستنية</span></div>
+        <p>هنا بتشوف الطلبات المتأخرة والمكاتب اللي ماردتش. تقدر كمان تجرب المنصة كصاحب عمل أو كمكتب من الشريط اللي فوق.</p>${demoSwitch()}</section>
+      <div class="kpis">
+        ${kpi("list", "", num(open.length), "طلب مفتوح")}
+        ${kpi("alert", late.length ? "bad" : "ok", num(late.length), "طلب متأخر")}
+        ${kpi("clock", waiting.length ? "warn" : "ok", num(waiting.length), "مستني رد المكتب")}
+        ${kpi("check", "ok", onTime === null ? "—" : num(onTime) + "٪", "خلصت في موعدها")}
+        ${kpi("users", "", num(users), "مستخدم")}
+        ${kpi("mail", "", num(pending), "دعوة مستنية")}
       </div>
       <section class="panel"><div class="row between"><h2>طلبات متأخرة</h2><a class="btn small" href="#performance">أداء المكاتب</a></div>
         ${late.length ? `<div class="reqs">${late.map((r) => `<a class="req late" href="#request/${r.id}">
@@ -113,8 +115,7 @@
     const star = (v) => (v === null ? "—" : num(v.toFixed(1)));
     el.innerHTML = `
       <section class="head"><a class="back" href="#home">→ الرئيسية</a><span class="eyebrow">أداء المكاتب</span><h1>مين بيلتزم بمواعيده</h1>
-        <p>الأرقام دي محسوبة من تواريخ الطلبات نفسها، مش من رأي حد. الالتزام بالموعد معناه إن الطلب خلص في المدة اللي المكتب أعلنها أو أقل.</p></section>
-      ${demoSwitch()}
+        <p>الأرقام دي محسوبة من تواريخ الطلبات نفسها، مش من رأي حد. الالتزام بالموعد معناه إن الطلب خلص في المدة اللي المكتب أعلنها أو أقل.</p>${demoSwitch()}</section>
       <section class="panel"><div class="table-wrap">${rows.length ? `<table><thead><tr>
         <th>المكتب</th><th>الطلبات</th><th>مفتوح</th><th>متأخر دلوقتي</th><th>خلص</th><th>نسبة القبول</th><th>متوسط وقت الرد</th><th>في الموعد</th><th>متوسط التأخير</th><th>الاحترافية</th><th>السرعة</th></tr></thead><tbody>
         ${rows.map((x) => `<tr><td>${esc(x.o.name)}${x.o.active ? "" : ' <span class="chip">موقوف</span>'}${x.o.is_demo ? ' <span class="chip">تجريبي</span>' : ""}</td><td>${num(x.total)}</td><td>${num(x.open)}</td>

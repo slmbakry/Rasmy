@@ -127,9 +127,34 @@
     return parts.join(" · ");
   }
 
+  // Stroke icons, sized by the surrounding text and colored with currentColor.
+  const ICONS = {
+    check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+    doc: '<path d="M7 3h7l5 5v13H7zM14 3v5h5"/>',
+    docOk: '<path d="M7 3h7l5 5v13H7zM14 3v5h5M10 14l2 2 4-4"/>',
+    clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+    alert: '<path d="M12 4l9 16H3zM12 10v4M12 17.2v.3"/>',
+    list: '<path d="M4 7h16M4 12h10M4 17h7M16 16l2 2 3-4"/>',
+    arrow: '<path d="M4 12h12M12 6l6 6-6 6"/>',
+    bell: '<path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15L6 16zM10 20a2 2 0 0 0 4 0"/>',
+    home: '<path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    building: '<path d="M5 21V5l7-2v18M12 8h7v13M8 8v.5M8 12v.5M8 16v.5M15 12v.5M15 16v.5M3 21h18"/>',
+    person: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.2-3.6 4-5 7-5s5.8 1.4 7 5"/>',
+    star: '<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>',
+    chart: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+    mail: '<path d="M3 6h18v12H3zM3 7l9 6 9-6"/>',
+    users: '<circle cx="9" cy="8" r="3"/><path d="M3 20c.9-3.2 3.2-5 6-5s5.1 1.8 6 5M16 5.5a3 3 0 0 1 0 5.5M18 15c1.6.6 2.7 2.2 3 5"/>',
+    pulse: '<path d="M4 12h4l3-7 4 14 3-7h2"/>',
+  };
+  const icon = (name, size = 20) => `<svg class="ic" width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[name] || ""}</svg>`;
+
+  // A span of days in plain words: months past two months, days before that.
+  const span = (n) => (n >= 60 ? (Math.round(n / 30) === 1 ? "شهر" : num(Math.round(n / 30)) + " شهر") : days(n));
+
   const EVENTS = { rated: "صاحب العمل قيّم المكتب", created: "اتعمل الطلب", accepted: "المكتب قبل الطلب", declined: "المكتب اعتذر عن الطلب", stage_done: "خلصت مرحلة", done: "خلص الطلب", cancelled: "اتلغى الطلب", note: "ملاحظة", file: "اترفع ملف" };
   const STATUS = { new: ["", "جديد"], accepted: ["", "المكتب قبله"], in_progress: ["warn", "جاري التنفيذ"], done: ["ok", "تم"], cancelled: ["", "ملغي"] };
 
   window.R = { sb, DAY, esc, fmtDate, num, money, days, today, toast, state, role, isPreview, writeViewAs, writePreviewOffice, officeId,
-    services, docStatus, optionsFor, optionLabel, filesBlock, stageLate, EVENTS, STATUS, views: {} };
+    services, docStatus, optionsFor, optionLabel, filesBlock, stageLate, EVENTS, STATUS, icon, span, views: {} };
 })();

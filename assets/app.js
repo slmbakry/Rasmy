@@ -1,6 +1,6 @@
 // App shell: sign-in, consent, navigation and the admin preview switch.
 (function () {
-  const { sb, esc, fmtDate, toast, state, role, isPreview, officeId, writeViewAs, writePreviewOffice, views } = window.R;
+  const { sb, esc, fmtDate, toast, state, role, isPreview, officeId, writeViewAs, writePreviewOffice, views, icon } = window.R;
   const app = document.getElementById("app");
   const nav = document.getElementById("nav");
   const logoutBtn = document.getElementById("logout");
@@ -8,9 +8,9 @@
   const bell = document.getElementById("bell");
 
   const NAV = {
-    admin: [["home", "الرئيسية"], ["performance", "أداء المكاتب"], ["invites", "الدعوات"], ["offices", "المكاتب"], ["users", "المستخدمين"]],
-    owner: [["home", "لوحتي"], ["guide", "ابدأ مشروع"], ["company-new", "ضيف شركة"]],
-    office: [["home", "الطلبات"]],
+    admin: [["home", "الرئيسية", "home"], ["performance", "أداء المكاتب", "chart"], ["invites", "الدعوات", "mail"], ["offices", "المكاتب", "building"], ["users", "المستخدمين", "users"]],
+    owner: [["home", "لوحتي", "home"], ["guide", "ابدأ مشروع", "pulse"], ["company-new", "ضيف شركة", "plus"]],
+    office: [["home", "الطلبات", "list"]],
   };
   const route = () => (location.hash || "#home").slice(1);
 
@@ -18,7 +18,7 @@
     const r = role();
     const items = r ? NAV[r] : [];
     const base = route().split("/")[0];
-    nav.innerHTML = items.map(([id, label]) => `<a href="#${id}" ${base === id ? 'aria-current="page"' : ""}>${label}</a>`).join("");
+    nav.innerHTML = items.map(([id, label, ic]) => `<a href="#${id}" ${base === id ? 'aria-current="page"' : ""}>${icon(ic, 22)}${label}</a>`).join("");
     logoutBtn.classList.toggle("hidden", !state.profile);
     bell.classList.toggle("hidden", !(r && state.profile?.consent_at));
     if (r && state.profile?.consent_at) bellCount();
@@ -126,20 +126,37 @@
 
   function viewLogin() {
     app.innerHTML = `
-      <section class="panel auth">
-        <span class="eyebrow">أهلاً بيك في رسمي</span>
-        <h1 style="font-size:26px">مرجعيتك لكل خطوة في حياة شركتك</h1>
-        <p class="note">النسخة دي تجريبية، والدخول بدعوة بس.</p>
-        <form id="login" class="stack">
-          <div class="field"><label for="email">البريد الإلكتروني</label><input id="email" type="email" class="ltr" required autocomplete="email"></div>
-          <div class="field"><label for="pass">كلمة السر</label><input id="pass" type="password" class="ltr" required autocomplete="current-password"></div>
-          <button class="btn primary" type="submit">ادخل</button>
-        </form>
-        <div class="auth-links">
-          <button class="linkish" type="button" id="first">أول مرة تدخل؟ ابعتلي رابط دخول</button>
-          <button class="linkish" type="button" id="forgot">نسيت كلمة السر</button>
-        </div>
-      </section>`;
+      <div class="landing">
+        <section class="landing-top">
+          <div class="landing-t">
+            <span class="eyebrow">مرجعيتك لكل خطوة في حياة شركتك</span>
+            <h1>كل ورق شركتك في مكان واحد، ومحدش هيفوّت ميعاد تاني</h1>
+            <p>رسمي بيفكرك قبل ما أي مستند ينتهي، ويوريك تعمل الخطوة بنفسك ولا مع مكتب، بكام وفي قد إيه. ولو اخترت مكتب، بتتابع شغله خطوة بخطوة.</p>
+            <div class="perks"><span>${icon("check", 16)}تذكير قبل كل تجديد</span><span>${icon("check", 16)}أسعار ومدد المكاتب قدامك</span><span>${icon("check", 16)}تقييم حقيقي لالتزام كل مكتب</span></div>
+          </div>
+          <section class="panel auth">
+            <h2>ادخل حسابك</h2>
+            <p class="note">النسخة دي تجريبية، والدخول بدعوة بس.</p>
+            <form id="login" class="stack">
+              <div class="field"><label for="email">البريد الإلكتروني</label><input id="email" type="email" class="ltr" required autocomplete="email"></div>
+              <div class="field"><label for="pass">كلمة السر</label><input id="pass" type="password" class="ltr" required autocomplete="current-password"></div>
+              <button class="btn primary" type="submit">ادخل</button>
+            </form>
+            <div class="auth-links">
+              <button class="linkish" type="button" id="first">أول مرة تدخل؟ ابعتلي رابط دخول</button>
+              <button class="linkish" type="button" id="forgot">نسيت كلمة السر</button>
+            </div>
+          </section>
+        </section>
+        <section class="landing-how">
+          <h2>ثلاث خطوات وتبقى مطمّن</h2>
+          <div class="how">
+            <div><span class="tile-ic">${icon("doc", 24)}</span><b>ضيف شركتك ومستنداتها</b><p>السجل والبطاقة الضريبية والتراخيص، وتاريخ انتهاء كل واحد.</p></div>
+            <div><span class="tile-ic warn">${icon("bell", 24)}</span><b>استنى التذكير</b><p>بنفكرك في الوقت اللي لازم تبدأ فيه، مش يوم الانتهاء.</p></div>
+            <div><span class="tile-ic ok">${icon("pulse", 24)}</span><b>اختار وتابع</b><p>اعملها بنفسك أو اختار مكتب، وتابع كل مرحلة لحد ما تخلص.</p></div>
+          </div>
+        </section>
+      </div>`;
     const emailOf = () => {
       const v = document.getElementById("email").value.trim();
       if (!v) toast("اكتب بريدك الأول", true);
