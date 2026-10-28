@@ -1,10 +1,11 @@
 // App shell: sign-in, consent, navigation and the admin preview switch.
 (function () {
-  const { sb, esc, toast, state, role, isPreview, writeViewAs, writePreviewOffice, views } = window.R;
+  const { sb, esc, fmtDate, toast, state, role, isPreview, officeId, writeViewAs, writePreviewOffice, views } = window.R;
   const app = document.getElementById("app");
   const nav = document.getElementById("nav");
   const logoutBtn = document.getElementById("logout");
   const previewBar = document.getElementById("preview");
+  const bell = document.getElementById("bell");
 
   const NAV = {
     admin: [["home", "الرئيسية"], ["performance", "أداء المكاتب"], ["invites", "الدعوات"], ["offices", "المكاتب"], ["users", "المستخدمين"]],
@@ -19,6 +20,8 @@
     const base = route().split("/")[0];
     nav.innerHTML = items.map(([id, label]) => `<a href="#${id}" ${base === id ? 'aria-current="page"' : ""}>${label}</a>`).join("");
     logoutBtn.classList.toggle("hidden", !state.profile);
+    bell.classList.toggle("hidden", !(r && state.profile?.consent_at));
+    if (r && state.profile?.consent_at) bellCount();
     const admin = state.profile?.role === "admin" && state.profile?.consent_at;
     previewBar.hidden = !admin;
     if (admin) {
@@ -35,7 +38,7 @@
     if (!p.role) return viewNotInvited();
     if (!p.consent_at) return viewConsent();
     const [name, arg] = route().split("/");
-    const handler = views[role()]?.[name] || views[role()]?.home;
+    const handler = name === "alerts" ? alerts : views[role()]?.[name] || views[role()]?.home;
     try { await handler(app, arg); }
     catch (e) { console.error(e); app.innerHTML = `<section class="panel"><p>حصلت مشكلة في تحميل الصفحة. حدّث الصفحة وجرب تاني.</p></section>`; }
   }
@@ -64,6 +67,36 @@
     state.viewAs = b.dataset.as; writeViewAs(b.dataset.as);
     location.hash = "#home"; render();
   });
+
+  // ---------- Notifications ----------
+  // Each role reads its own: the owner's, the office's, or the admins' shared ones.
+  function scoped(q) {
+    const r = role();
+    if (r === "office") return officeId() ? q.eq("office_id", officeId()) : null;
+    if (r === "owner") return q.eq("user_id", state.profile.id);
+    return q.eq("for_admin", true);
+  }
+  async function bellCount() {
+    const q = scoped(sb.from("notifications").select("id", { count: "exact", head: true }).is("read_at", null));
+    const { count } = q ? await q : { count: 0 };
+    const n = document.getElementById("bell-n");
+    n.hidden = !count; n.textContent = count > 9 ? "+٩" : Number(count || 0).toLocaleString("ar-EG");
+  }
+  const TONE = { late: "bad", overdue: "bad", expired: "bad", escalated: "bad", declined: "bad", renew: "warn", wait: "warn", done: "ok", accepted: "ok" };
+
+  async function alerts(el) {
+    el.innerHTML = `<section class="head"><span class="eyebrow">التنبيهات</span><h1>اللي محتاج تعرفه</h1>
+      <p>التنبيهات بتوصل لما حاجة تتغير في طلباتك، أو مرحلة تتأخر، أو مستند يقرب ينتهي.</p></section>
+      <section class="panel" id="list"><div class="loading">جاري التحميل</div></section>`;
+    const q = scoped(sb.from("notifications").select("*").order("created_at", { ascending: false }).limit(60));
+    const { data } = q ? await q : { data: [] };
+    const list = document.getElementById("list");
+    list.innerHTML = data?.length ? `<div class="alerts">${data.map((n) => `<a class="alert-row ${TONE[n.kind] || ""}${n.read_at ? "" : " unread"}" href="${esc(n.link || "#home")}">
+      <span class="dot" aria-hidden="true"></span><div><b>${esc(n.title)}</b>${n.body ? `<small>${esc(n.body)}</small>` : ""}</div><small class="when">${fmtDate(n.created_at)}</small></a>`).join("")}</div>`
+      : '<p class="empty">مفيش تنبيهات لسه.</p>';
+    const unread = (data || []).filter((n) => !n.read_at).map((n) => n.id);
+    if (unread.length) { await sb.from("notifications").update({ read_at: new Date().toISOString() }).in("id", unread); bellCount(); }
+  }
 
   // ---------- Auth ----------
   async function loadProfile() {

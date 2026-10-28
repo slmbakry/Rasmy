@@ -67,13 +67,13 @@
       </div>
       <section class="panel"><div class="row between"><h2>طلبات متأخرة</h2><a class="btn small" href="#performance">أداء المكاتب</a></div>
         ${late.length ? `<div class="reqs">${late.map((r) => `<a class="req late" href="#request/${r.id}">
-          <div class="row between"><b>${title(r)}</b><span class="chip bad">متأخر ${days(Math.max(r.stageLate, r.overdue))}</span></div>
+          <div class="row between"><b>${title(r)}</b><span class="chips">${r.escalated_at ? '<span class="chip warn">اتصعّد</span>' : ""}<span class="chip bad">متأخر ${days(Math.max(r.stageLate, r.overdue))}</span></span></div>
           <small>${esc(r.companies?.name || "")} · ${who(r)}${r.stage ? " · المرحلة الحالية: " + esc(r.stage.title) : ""}</small>
           <small>${r.overdue ? `عدّى المدة المعلنة بـ${days(r.overdue)}` : ""}${r.overdue && r.stageLate ? " · " : ""}${r.stageLate ? `المرحلة متأخرة ${days(r.stageLate)}` : ""}</small></a>`).join("")}</div>`
           : '<p class="empty">مفيش طلبات متأخرة.</p>'}</section>
       <section class="panel"><h2>مكاتب ماردتش على طلبات</h2>
         ${waiting.length ? `<div class="reqs">${waiting.map((r) => `<a class="req" href="#request/${r.id}">
-          <div class="row between"><b>${title(r)}</b><span class="chip warn">مستني ${days(r.waiting)}</span></div>
+          <div class="row between"><b>${title(r)}</b><span class="chips">${r.escalated_at ? '<span class="chip bad">اتصعّد</span>' : ""}<span class="chip warn">مستني ${days(r.waiting)}</span></span></div>
           <small>${esc(r.companies?.name || "")} · ${who(r)}</small></a>`).join("")}</div>`
           : '<p class="empty">كل المكاتب ردت على طلباتها.</p>'}</section>`;
     bindDemo(el, () => home(el));

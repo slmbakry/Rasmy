@@ -99,10 +99,12 @@
   // Offices that offer a service, with their price, time and average ratings.
   async function optionsFor(serviceId) {
     const svc = (await services())[serviceId];
-    const [{ data: rows }, { data: ratings }] = await Promise.all([
+    const [{ data: rows }, { data: ratings }, { data: perf }] = await Promise.all([
       sb.from("office_services").select("fee,days,offices(id,name,active)").eq("service_id", serviceId),
       sb.from("ratings").select("office_id,professionalism,speed"),
+      sb.rpc("office_stats"),
     ]);
+    const perfOf = Object.fromEntries((perf || []).map((p) => [p.office_id, p]));
     const stats = {};
     (ratings || []).forEach((r) => {
       const s = (stats[r.office_id] ||= { pro: 0, speed: 0, n: 0 });
@@ -111,18 +113,21 @@
     const offices = (rows || []).filter((r) => r.offices?.active).map((r) => {
       const s = stats[r.offices.id];
       return { key: r.offices.id, officeId: r.offices.id, label: r.offices.name, fee: Number(r.fee), cost: Number(r.fee) + Number(svc.gov_fee), days: r.days,
-        pro: s ? s.pro / s.n : null, speed: s ? s.speed / s.n : null, count: s ? s.n : 0 };
+        pro: s ? s.pro / s.n : null, speed: s ? s.speed / s.n : null, count: s ? s.n : 0,
+        done: perfOf[r.offices.id]?.done || 0, onTime: perfOf[r.offices.id]?.on_time || 0 };
     }).sort((a, b) => (b.pro ?? 0) - (a.pro ?? 0));
     return [{ key: "self", officeId: null, label: "هعملها بنفسي", sub: "من البوابة الإلكترونية أو بالتقديم بنفسك", fee: 0, cost: Number(svc.gov_fee), days: svc.self_days }, ...offices];
   }
 
+  // Ratings come from owners; the on-time share comes from the requests' own dates.
   function optionLabel(o) {
     if (!o.officeId) return o.sub;
-    if (!o.count) return "لسه مفيش تقييمات";
-    return `احترافية ${num(o.pro.toFixed(1))} · سرعة ${num(o.speed.toFixed(1))} · ${num(o.count)} تقييم`;
+    const parts = [o.count ? `احترافية ${num(o.pro.toFixed(1))} · سرعة ${num(o.speed.toFixed(1))} · ${num(o.count)} تقييم` : "لسه مفيش تقييمات"];
+    if (o.done) parts.push(`خلّص ${num(Math.round((o.onTime / o.done) * 100))}٪ من ${num(o.done)} طلب في موعده`);
+    return parts.join(" · ");
   }
 
-  const EVENTS = { created: "اتعمل الطلب", accepted: "المكتب قبل الطلب", declined: "المكتب اعتذر عن الطلب", stage_done: "خلصت مرحلة", done: "خلص الطلب", cancelled: "اتلغى الطلب", note: "ملاحظة", file: "اترفع ملف" };
+  const EVENTS = { rated: "صاحب العمل قيّم المكتب", created: "اتعمل الطلب", accepted: "المكتب قبل الطلب", declined: "المكتب اعتذر عن الطلب", stage_done: "خلصت مرحلة", done: "خلص الطلب", cancelled: "اتلغى الطلب", note: "ملاحظة", file: "اترفع ملف" };
   const STATUS = { new: ["", "جديد"], accepted: ["", "المكتب قبله"], in_progress: ["warn", "جاري التنفيذ"], done: ["ok", "تم"], cancelled: ["", "ملغي"] };
 
   window.R = { sb, DAY, esc, fmtDate, num, money, days, today, toast, state, role, isPreview, writeViewAs, writePreviewOffice, officeId,

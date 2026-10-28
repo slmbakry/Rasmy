@@ -176,3 +176,29 @@ input.mini { width: 110px; padding: 6px 8px; border: 1px solid var(--line); bord
 .tr.late .note { color: var(--bad); font-weight: 600; }
 .alert { background: var(--warn-soft); color: var(--warn-ink); border-radius: 12px; padding: 10px 14px; margin-bottom: 16px; }
 button.tab { cursor: pointer; font: inherit; font-weight: 600; font-size: 14.5px; }
+
+/* Notifications */
+.bell { position: relative; display: inline-flex; color: #C9D6E3; padding: 6px; border-radius: 999px; margin-inline-start: auto; }
+.bell b[hidden] { display: none; }
+.bell:hover { color: #FFFFFF; background: rgba(255,255,255,.08); }
+.bell:not(.hidden) ~ #logout { margin-inline-start: 0; }
+.bell b { position: absolute; top: -2px; inset-inline-end: -4px; background: var(--bad); color: #FFFFFF; font-size: 11px; min-width: 18px; height: 18px; border-radius: 9px; display: grid; place-items: center; padding: 0 4px; line-height: 1; }
+@media (min-width: 701px) { .bell { order: 3; margin-inline-start: 0; } #logout { order: 4; } }
+.alerts { display: grid; }
+.alert-row { display: grid; grid-template-columns: 14px 1fr auto; gap: 12px; align-items: start; padding: 12px 4px; border-bottom: 1px solid var(--line); text-decoration: none; }
+.alert-row:last-child { border-bottom: 0; }
+.alert-row .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--line); margin-top: 8px; }
+.alert-row.unread .dot { background: var(--accent); }
+.alert-row.warn .dot { background: var(--warn-ink); }
+.alert-row.bad .dot { background: var(--bad); }
+.alert-row.unread b { font-weight: 700; }
+.alert-row b { font-weight: 500; display: block; }
+.alert-row small { color: var(--muted); display: block; }
+.alert-row .when { white-space: nowrap; font-size: 12.5px; }
+.rate { display: grid; gap: 12px; }
+.stars { display: flex; gap: 6px; flex-wrap: wrap; }
+.stars label { cursor: pointer; }
+.stars input { position: absolute; opacity: 0; }
+.stars span { display: inline-grid; place-items: center; width: 38px; height: 38px; border: 1px solid var(--line); border-radius: 10px; font-weight: 600; }
+.stars input:checked + span { background: var(--accent); border-color: var(--accent); color: #FFFFFF; }
+.stars input:focus-visible + span { outline: 3px solid var(--accent); outline-offset: 2px; }

@@ -255,12 +255,16 @@
     ]);
     if (!r) { el.innerHTML = `<section class="panel"><p>الطلب ده مش موجود.</p></section>`; return; }
     const s = svcs[r.service_id], self = !r.office_id;
+    const canRate = r.status === "done" && r.office_id;
+    const { data: rating } = canRate ? await sb.from("ratings").select("*").eq("request_id", id).maybeSingle() : { data: null };
     const cur = stages.findIndex((x) => !x.done_at);
     const open = !["done", "cancelled"].includes(r.status);
     el.innerHTML = `
       <section class="head"><a class="back" href="#home/${r.company_id}">→ لوحتي</a><span class="eyebrow">${esc(r.companies?.name || "")}</span><h1>${esc(s.title)}</h1>
         <p>${self ? "بتنفذ الطلب ده بنفسك، وتقدر تعلّم كل مرحلة لما تخلص." : `بينفذه ${esc(r.offices?.name || "")}. المكتب هو اللي بيحدّث المراحل.`}</p></section>
       ${!self && r.status === "new" ? '<p class="alert">الطلب لسه مستني المكتب يقبله.</p>' : ""}
+      ${r.escalated_at && open ? '<p class="alert">الإدارة اتبلغت بالتأخير ده وبتتابعه مع المكتب.</p>' : ""}
+      ${canRate ? rateBlock(rating, r.offices?.name) : ""}
       <div class="grid2 wide">
         <section class="panel"><div class="row between"><h2>المراحل</h2><span class="chip ${STATUS[r.status][0]}">${STATUS[r.status][1]}</span></div>
           <div class="track">${stages.map((x, i) => stageRow(x, i === cur && open, self && i === cur && open)).join("")}</div>
@@ -277,6 +281,16 @@
         </section>
       </div>`;
     filesBlock(el.querySelector("#files"), id);
+    el.querySelector("#rate")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const f = new FormData(e.target);
+      if (!f.get("pro") || !f.get("speed")) return toast("اختار درجة للاحترافية والسرعة", true);
+      const { error } = await sb.from("ratings").insert({ request_id: id, office_id: r.office_id, owner_id: uid(),
+        professionalism: Number(f.get("pro")), speed: Number(f.get("speed")), comment: f.get("comment").trim() || null });
+      if (error) return toast("ماقدرناش نحفظ التقييم", true);
+      await sb.from("events").insert({ request_id: id, actor_id: uid(), kind: "rated" });
+      toast("شكراً، اتحفظ تقييمك"); request(el, id);
+    });
     el.querySelectorAll("[data-stage]").forEach((b) => b.addEventListener("click", async () => {
       b.disabled = true;
       const now = new Date().toISOString();
@@ -291,6 +305,23 @@
       await sb.from("events").insert({ request_id: id, actor_id: uid(), kind: "cancelled" });
       toast("اتلغى الطلب"); request(el, id);
     });
+  }
+
+  // After an office finishes, the owner rates it once. Speed is also measured from dates.
+  function rateBlock(rating, office) {
+    if (rating) return `<section class="panel"><h2>تقييمك للمكتب</h2>
+      <div class="kv"><span>الاحترافية</span><b>${num(rating.professionalism)} من ٥</b></div>
+      <div class="kv"><span>السرعة</span><b>${num(rating.speed)} من ٥</b></div>
+      ${rating.comment ? `<p class="note">${esc(rating.comment)}</p>` : ""}</section>`;
+    const scale = (name) => `<div class="stars">${[1, 2, 3, 4, 5].map((n) => `<label><input type="radio" name="${name}" value="${n}"><span>${num(n)}</span></label>`).join("")}</div>`;
+    return `<section class="panel"><h2>قيّم ${esc(office || "المكتب")}</h2>
+      <p class="note">تقييمك بيساعد أصحاب الأعمال التانيين يختاروا. ده بيتحسب مع نسبة التزام المكتب بالمواعيد.</p>
+      <form id="rate" class="rate">
+        <div class="field"><label>الاحترافية والتعامل</label>${scale("pro")}</div>
+        <div class="field"><label>السرعة</label>${scale("speed")}</div>
+        <div class="field"><label for="comment">تعليق، لو حابب</label><input id="comment" name="comment"></div>
+        <button class="btn primary" type="submit">احفظ التقييم</button>
+      </form></section>`;
   }
 
   // One row of the stage track, shared with the office screens.
