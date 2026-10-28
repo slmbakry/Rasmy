@@ -100,7 +100,7 @@
   async function optionsFor(serviceId) {
     const svc = (await services())[serviceId];
     const [{ data: rows }, { data: ratings }, { data: perf }] = await Promise.all([
-      sb.from("office_services").select("fee,days,offices(id,name,active)").eq("service_id", serviceId),
+      sb.from("office_services").select("fee,days,offices(id,name,active,is_demo)").eq("service_id", serviceId),
       sb.from("ratings").select("office_id,professionalism,speed"),
       sb.rpc("office_stats"),
     ]);
@@ -110,7 +110,7 @@
       const s = (stats[r.office_id] ||= { pro: 0, speed: 0, n: 0 });
       s.pro += r.professionalism; s.speed += r.speed; s.n++;
     });
-    const offices = (rows || []).filter((r) => r.offices?.active).map((r) => {
+    const offices = (rows || []).filter((r) => r.offices?.active && (!r.offices.is_demo || isPreview())).map((r) => {
       const s = stats[r.offices.id];
       return { key: r.offices.id, officeId: r.offices.id, label: r.offices.name, fee: Number(r.fee), cost: Number(r.fee) + Number(svc.gov_fee), days: r.days,
         pro: s ? s.pro / s.n : null, speed: s ? s.speed / s.n : null, count: s ? s.n : 0,

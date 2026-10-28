@@ -54,10 +54,10 @@
     pick.hidden = state.viewAs !== "office";
     if (pick.hidden) return;
     if (!officeList) {
-      const { data } = await sb.from("offices").select("id,name").eq("active", true).order("name");
+      const { data } = await sb.from("offices").select("id,name,is_demo").eq("active", true).order("name");
       officeList = data || [];
     }
-    pick.innerHTML = `<option value="">اختار المكتب</option>` + officeList.map((o) => `<option value="${o.id}" ${o.id === state.previewOffice ? "selected" : ""}>${esc(o.name)}</option>`).join("");
+    pick.innerHTML = `<option value="">اختار المكتب</option>` + officeList.map((o) => `<option value="${o.id}" ${o.id === state.previewOffice ? "selected" : ""}>${esc(o.name)}${o.is_demo ? " (تجريبي)" : ""}</option>`).join("");
   }
   document.getElementById("preview-office").addEventListener("change", (e) => {
     state.previewOffice = e.target.value || null; writePreviewOffice(e.target.value);

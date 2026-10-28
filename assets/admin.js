@@ -84,13 +84,13 @@
     el.innerHTML = `<div class="loading">جاري التحميل</div>`;
     const [reqs, { data: offs }, { data: ratings }, { data: declines }] = await Promise.all([
       loadRequests(),
-      sb.from("offices").select("id,name,active").order("name"),
+      sb.from("offices").select("id,name,active,is_demo").order("name"),
       sb.from("ratings").select("office_id,professionalism,speed,request_id"),
       sb.from("events").select("request_id").eq("kind", "declined"),
     ]);
     const declined = new Set((declines || []).map((e) => e.request_id));
     const ids = new Set(reqs.map((r) => r.id));
-    const rows = (offs || []).map((o) => {
+    const rows = (offs || []).filter((o) => readDemo() || !o.is_demo).map((o) => {
       const mine = reqs.filter((r) => r.office_id === o.id);
       const answered = mine.filter((r) => r.accepted_at || declined.has(r.id));
       const accepted = mine.filter((r) => r.accepted_at);
@@ -117,7 +117,7 @@
       ${demoSwitch()}
       <section class="panel"><div class="table-wrap">${rows.length ? `<table><thead><tr>
         <th>المكتب</th><th>الطلبات</th><th>مفتوح</th><th>متأخر دلوقتي</th><th>خلص</th><th>نسبة القبول</th><th>متوسط وقت الرد</th><th>في الموعد</th><th>متوسط التأخير</th><th>الاحترافية</th><th>السرعة</th></tr></thead><tbody>
-        ${rows.map((x) => `<tr><td>${esc(x.o.name)}${x.o.active ? "" : ' <span class="chip">موقوف</span>'}</td><td>${num(x.total)}</td><td>${num(x.open)}</td>
+        ${rows.map((x) => `<tr><td>${esc(x.o.name)}${x.o.active ? "" : ' <span class="chip">موقوف</span>'}${x.o.is_demo ? ' <span class="chip">تجريبي</span>' : ""}</td><td>${num(x.total)}</td><td>${num(x.open)}</td>
           <td>${x.late ? `<span class="chip bad">${num(x.late)}</span>` : num(0)}</td><td>${num(x.done)}</td><td>${pct(x.acceptRate)}</td><td>${dur(x.reply)}</td>
           <td>${x.onTime === null ? "—" : `<span class="chip ${x.onTime >= 0.8 ? "ok" : x.onTime >= 0.5 ? "warn" : "bad"}">${pct(x.onTime)}</span>`}</td>
           <td>${dur(x.delay)}</td><td>${star(x.pro)}</td><td>${star(x.speed)}</td></tr>`).join("")}

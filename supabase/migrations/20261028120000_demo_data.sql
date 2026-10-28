@@ -84,7 +84,7 @@ end $$;
 
 -- Demo data: three offices with different track records, three companies,
 -- documents in every state and requests at every step. Dates are relative to
--- now, and an admin can rebuild it from the dashboard at any time.
+-- now. It is seeded once and skipped if the demo set already exists.
 alter table public.offices add column if not exists is_demo boolean not null default false;
 
 -- One demo request with a believable timeline: stages spread between
@@ -132,7 +132,7 @@ begin
 end $$;
 revoke all on function public._demo_request(uuid, uuid, uuid, text, text, timestamptz, timestamptz, timestamptz, int, timestamptz, uuid) from public, anon, authenticated;
 
-create or replace function public.reset_demo() returns void
+create or replace function public.seed_demo() returns void
 language plpgsql security definer set search_path = '' as $$
 declare me uuid; oa uuid; ob uuid; oc uuid; c1 uuid; c2 uuid; c3 uuid; d uuid; r uuid; o record; s record;
   base jsonb := '{"name_reservation":500,"incorporation":2500,"commercial_register":1500,"tax_card":800,"vat_registration":1200,
@@ -140,20 +140,13 @@ declare me uuid; oa uuid; ob uuid; oc uuid; c1 uuid; c2 uuid; c3 uuid; d uuid; r
     "license_renewal":2500,"tax_card_renewal":600,"industrial_renewal":3000}';
   day constant interval := interval '1 day';
 begin
-  if auth.uid() is not null and not public.is_admin() then raise exception 'admins only'; end if;
-  me := coalesce(auth.uid(), (select id from public.profiles where role = 'admin' order by created_at limit 1));
+  me := (select id from public.profiles where role = 'admin' order by created_at limit 1);
   if me is null then return; end if;
   perform set_config('rasmy.seeding', 'on', true);
 
-  -- Clear the previous demo set.
-  delete from public.notifications n where n.office_id in (select id from public.offices where is_demo)
-    or exists (select 1 from public.requests q where q.is_demo and n.link like '%' || q.id::text)
-    or exists (select 1 from public.documents dd join public.companies c on c.id = dd.company_id where c.is_demo and n.link like '%' || dd.id::text);
-  delete from public.ratings where request_id in (select id from public.requests where is_demo);
-  delete from public.companies where is_demo;
-  delete from public.offices where is_demo and not exists (select 1 from public.requests q where q.office_id = offices.id);
+  -- Seed once: skip if the demo set is already there.
+  if exists (select 1 from public.offices where is_demo) then return; end if;
 
-  -- Offices: reliable and pricier, average, cheap but slow.
   insert into public.offices (name, phone, license_no, is_demo) values ('مكتب الأمانة للمحاسبة', '01001234567', 'AC-1042', true) returning id into oa;
   insert into public.offices (name, phone, license_no, is_demo) values ('مكتب النيل للاستشارات', '01112345678', 'NL-2210', true) returning id into ob;
   insert into public.offices (name, phone, license_no, is_demo) values ('مكتب الريادة', '01223456789', 'RD-3307', true) returning id into oc;
@@ -206,7 +199,21 @@ begin
   perform set_config('rasmy.seeding', 'off', true);
   perform public.rasmy_check();
 end $$;
-revoke all on function public.reset_demo() from public, anon;
-grant execute on function public.reset_demo() to authenticated;
+revoke all on function public.seed_demo() from public, anon, authenticated;
 
-select public.reset_demo();
+select public.seed_demo();
+
+-- Demo offices are measured on their demo requests; real offices on real ones only.
+create or replace function public.office_stats()
+returns table (office_id uuid, done int, on_time int, answered int, accepted int, reply_hours numeric)
+language sql stable security definer set search_path = '' as $$
+  select r.office_id,
+    count(*) filter (where r.status = 'done')::int,
+    count(*) filter (where r.status = 'done' and r.completed_at <= coalesce(r.accepted_at, r.created_at) + make_interval(days => coalesce(r.quoted_days, 0)) + interval '12 hours')::int,
+    count(*) filter (where r.accepted_at is not null or exists (select 1 from public.events e where e.request_id = r.id and e.kind = 'declined'))::int,
+    count(*) filter (where r.accepted_at is not null)::int,
+    round(avg(extract(epoch from r.accepted_at - r.created_at) / 3600) filter (where r.accepted_at is not null), 1)
+  from public.requests r join public.offices o on o.id = r.office_id
+  where (not r.is_demo or o.is_demo) and (select public.my_role()) is not null
+  group by r.office_id;
+$$;
