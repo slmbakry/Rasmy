@@ -25,7 +25,7 @@ p { margin: 0; }
 a { color: inherit; }
 button, input, select { font: inherit; }
 :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-.hidden { display: none !important; }
+.hidden, [hidden] { display: none !important; }
 
 .bar { position: sticky; top: 0; z-index: 5; background: var(--navy); color: var(--on-navy); padding-inline: 16px; }
 .bar-in { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; gap: 12px; min-height: 56px; flex-wrap: wrap; padding-block: 8px; }
@@ -88,6 +88,7 @@ td.ltr { direction: ltr; text-align: right; }
 
 /* Preview switch */
 .preview { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; padding: 8px 16px; background: var(--sunken); border-bottom: 1px solid var(--line); font-size: 14px; }
+.preview[hidden] { display: none; }
 .preview button { border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 3px 12px; border-radius: 999px; font-weight: 600; cursor: pointer; }
 .preview button[aria-pressed="true"] { background: var(--navy); color: var(--on-navy); border-color: var(--navy); }
 .preview-note { color: var(--muted); font-size: 12.5px; display: none; }
@@ -202,3 +203,6 @@ button.tab { cursor: pointer; font: inherit; font-weight: 600; font-size: 14.5px
 .stars span { display: inline-grid; place-items: center; width: 38px; height: 38px; border: 1px solid var(--line); border-radius: 10px; font-weight: 600; }
 .stars input:checked + span { background: var(--accent); border-color: var(--accent); color: #FFFFFF; }
 .stars input:focus-visible + span { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.auth-links { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.linkish { background: none; border: 0; padding: 0; color: var(--accent-ink); font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }

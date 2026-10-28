@@ -35,8 +35,10 @@
     renderChrome();
     const p = state.profile;
     if (!p) return viewLogin();
+    if (state.recovery) return viewSetPassword();
     if (!p.role) return viewNotInvited();
     if (!p.consent_at) return viewConsent();
+    if (needsPassword()) return viewSetPassword();
     const [name, arg] = route().split("/");
     const handler = name === "alerts" ? alerts : views[role()]?.[name] || views[role()]?.home;
     try { await handler(app, arg); }
@@ -99,40 +101,106 @@
   }
 
   // ---------- Auth ----------
+  // Sign-in is by password. The emailed link is for the first visit and for a
+  // forgotten password; after it the person sets a password once.
+  const back = () => location.origin + location.pathname;
+  const readSkip = () => { try { return sessionStorage.getItem("rasmy-skip-password") === "1"; } catch { return false; } };
+
   async function loadProfile() {
     const { data: { session } } = await sb.auth.getSession();
-    if (!session) { state.profile = null; return; }
+    if (!session) { state.profile = null; state.hasPassword = true; return; }
+    state.hasPassword = !!session.user.user_metadata?.has_password;
     const { data } = await sb.from("profiles").select("*").eq("id", session.user.id).maybeSingle();
     state.profile = data || { id: session.user.id, email: session.user.email, role: null };
     if (state.profile.role !== "admin") state.viewAs = "admin";
   }
   sb.auth.onAuthStateChange((ev) => {
     if (ev === "TOKEN_REFRESHED") return;
+    if (ev === "PASSWORD_RECOVERY") state.recovery = true;
     // Defer: awaiting Supabase calls inside this callback can deadlock.
     setTimeout(async () => { await loadProfile(); render(); }, 0);
   });
   logoutBtn.addEventListener("click", async () => { await sb.auth.signOut(); location.hash = "#home"; });
+
+  const needsPassword = () => state.recovery || (!state.hasPassword && !readSkip());
 
   function viewLogin() {
     app.innerHTML = `
       <section class="panel auth">
         <span class="eyebrow">أهلاً بيك في رسمي</span>
         <h1 style="font-size:26px">مرجعيتك لكل خطوة في حياة شركتك</h1>
-        <p class="note">النسخة دي تجريبية، والدخول بدعوة بس. اكتب بريدك، وهيوصلك رابط دخول.</p>
+        <p class="note">النسخة دي تجريبية، والدخول بدعوة بس.</p>
         <form id="login" class="stack">
           <div class="field"><label for="email">البريد الإلكتروني</label><input id="email" type="email" class="ltr" required autocomplete="email"></div>
-          <button class="btn primary" type="submit">ابعتلي رابط الدخول</button>
+          <div class="field"><label for="pass">كلمة السر</label><input id="pass" type="password" class="ltr" required autocomplete="current-password"></div>
+          <button class="btn primary" type="submit">ادخل</button>
         </form>
+        <div class="auth-links">
+          <button class="linkish" type="button" id="first">أول مرة تدخل؟ ابعتلي رابط دخول</button>
+          <button class="linkish" type="button" id="forgot">نسيت كلمة السر</button>
+        </div>
       </section>`;
+    const emailOf = () => {
+      const v = document.getElementById("email").value.trim();
+      if (!v) toast("اكتب بريدك الأول", true);
+      return v;
+    };
+    const sent = (email, what) => {
+      app.innerHTML = `<section class="panel auth"><h1 style="font-size:24px">افتح بريدك</h1><p>${what}</p><p class="ltr"><b>${esc(email)}</b></p>
+        <p class="note">لو مالقيتهوش، بص في الرسائل غير المرغوب فيها.</p><button class="linkish" type="button" id="again">رجوع لتسجيل الدخول</button></section>`;
+      document.getElementById("again").addEventListener("click", viewLogin);
+    };
     document.getElementById("login").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const email = document.getElementById("email").value.trim();
       const btn = e.target.querySelector("button");
       btn.disabled = true;
-      const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } });
+      const { error } = await sb.auth.signInWithPassword({ email: emailOf(), password: document.getElementById("pass").value });
       btn.disabled = false;
+      if (error) toast(error.status === 400 ? "البريد أو كلمة السر غلط. لو أول مرة تدخل، اطلب رابط الدخول." : "ماقدرناش ندخلك، جرب تاني", true);
+    });
+    document.getElementById("first").addEventListener("click", async () => {
+      const email = emailOf(); if (!email) return;
+      const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: back() } });
       if (error) return toast("ماقدرناش نبعت الرابط، جرب تاني بعد شوية", true);
-      app.innerHTML = `<section class="panel auth"><h1 style="font-size:24px">افتح بريدك</h1><p>بعتنالك رابط الدخول على:</p><p class="ltr"><b>${esc(email)}</b></p><p class="note">لو مالقيتهوش، بص في الرسائل غير المرغوب فيها.</p></section>`;
+      sent(email, "بعتنالك رابط الدخول. بعد ما تدخل هتعمل كلمة سر، ومش هتحتاج الرابط تاني.");
+    });
+    document.getElementById("forgot").addEventListener("click", async () => {
+      const email = emailOf(); if (!email) return;
+      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: back() });
+      if (error) return toast("ماقدرناش نبعت الرابط، جرب تاني بعد شوية", true);
+      sent(email, "بعتنالك رابط تعمل منه كلمة سر جديدة.");
+    });
+  }
+
+  function viewSetPassword() {
+    const fresh = !state.hasPassword && !state.recovery;
+    app.innerHTML = `
+      <section class="panel auth">
+        <span class="eyebrow">${fresh ? "خطوة واحدة" : "كلمة سر جديدة"}</span>
+        <h1 style="font-size:24px">${fresh ? "اعمل كلمة سر" : "اكتب كلمة السر الجديدة"}</h1>
+        <p class="note">${fresh ? "بعد كده هتدخل بيها على طول، من غير ما تستنى إيميل." : "هتستخدمها في الدخول من النهارده."}</p>
+        <form id="pw" class="stack">
+          <div class="field"><label for="p1">كلمة السر</label><input id="p1" type="password" class="ltr" minlength="8" required autocomplete="new-password"></div>
+          <div class="field"><label for="p2">اكتبها تاني</label><input id="p2" type="password" class="ltr" minlength="8" required autocomplete="new-password"></div>
+          <p class="note">٨ حروف أو أرقام على الأقل.</p>
+          <button class="btn primary" type="submit">احفظ</button>
+        </form>
+        ${fresh ? '<button class="linkish" type="button" id="later">مش دلوقتي</button>' : ""}
+      </section>`;
+    document.getElementById("pw").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const p1 = document.getElementById("p1").value, p2 = document.getElementById("p2").value;
+      if (p1 !== p2) return toast("كلمتين السر مش زي بعض", true);
+      const btn = e.target.querySelector("button"); btn.disabled = true;
+      const { error } = await sb.auth.updateUser({ password: p1, data: { has_password: true } });
+      btn.disabled = false;
+      if (error) return toast(error.code === "weak_password" ? "كلمة السر ضعيفة، جرب واحدة أطول" : error.code === "same_password" ? "دي نفس كلمة السر القديمة" : "ماقدرناش نحفظ كلمة السر", true);
+      state.recovery = false; state.hasPassword = true;
+      toast("اتحفظت كلمة السر"); render();
+    });
+    document.getElementById("later")?.addEventListener("click", () => {
+      try { sessionStorage.setItem("rasmy-skip-password", "1"); } catch {}
+      render();
     });
   }
 
