@@ -53,7 +53,7 @@ export function Login() {
     <div className="landing">
       <section className="landing-top">
         <div className="landing-t">
-          <span className="eyebrow">ورق شركتك كله، في إيدك</span>
+          <span className="eyebrow">ورقك أسهل</span>
           <h1>كل ورق شركتك في مكان واحد، ومحدش هيفوّت ميعاد تاني</h1>
           <p>ورقك بيفكرك قبل ما أي مستند ينتهي، ويوريك تعمل الخطوة بنفسك ولا مع مكتب، بكام وفي قد إيه. ولو اخترت مكتب، بتتابع شغله خطوة بخطوة.</p>
           <div className="perks">

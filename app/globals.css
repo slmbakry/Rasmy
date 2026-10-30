@@ -29,6 +29,7 @@ button, input, select { font: inherit; }
 
 .bar { position: sticky; top: 0; z-index: 5; background: var(--navy); color: var(--on-navy); padding-inline: 16px; }
 .bar-in { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; gap: 12px; min-height: 56px; flex-wrap: wrap; padding-block: 8px; }
+.brand img { display: block; height: 40px; width: auto; }
 .brand { display: flex; align-items: center; gap: 10px; font-family: var(--display); font-weight: 700; font-size: 20px; text-decoration: none; }
 .mark { width: 26px; height: 26px; border-radius: 8px; background: var(--accent); display: inline-block; }
 #logout { margin-inline-start: auto; padding: 5px 14px; font-size: 14px; }

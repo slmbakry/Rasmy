@@ -100,11 +100,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     <>
       <header className="bar">
         <div className="bar-in">
-          <Link className="brand" href="/">
-            <span className="mark" aria-hidden="true">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 3h7l5 5v13H7zM14 3v5h5M10 14l2 2 4-4" /></svg>
-            </span>ورقك
-          </Link>
+          <Link className="brand" href="/" aria-label="ورقك"><img src="/logo-header-dark.svg" alt="ورقك" width={104} height={40} /></Link>
           <span className="pilot-chip">نسخة تجريبية</span>
           {inside && <Bell />}
           {p && <button className="btn ghost" id="logout" type="button" onClick={async () => { await sb.auth.signOut(); router.push("/"); }}>خروج</button>}
