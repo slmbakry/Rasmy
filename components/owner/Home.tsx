@@ -6,6 +6,7 @@ import { sb } from "@/lib/supabase";
 import { DAY, days, fmtDate, money, num, span } from "@/lib/format";
 import { docStatus, services, sortStages, stageLate } from "@/lib/data";
 import { pathFor } from "@/lib/storage";
+import { fmtSize } from "@/lib/files";
 import { useLoad, useSession } from "../session";
 import { Avatar, Head, Icon, Kpi, LoadError, Loading } from "../ui";
 
@@ -19,20 +20,23 @@ export default function OwnerHome({ companyId }: { companyId?: string }) {
     const { data: companies } = await sb.from("companies").select("*").eq("owner_id", uid).neq("status", "closed").order("created_at");
     if (!companies?.length) return { svcs, companies: [] };
     const co = companies.find((c) => c.id === companyId) || companies[0];
-    const [{ data: docs }, { data: reqs }, { data: notes }] = await Promise.all([
+    const [{ data: docs }, { data: reqs }, { data: notes }, { data: used }, { data: plan }, { count: fileCount }] = await Promise.all([
       sb.from("documents").select("*").eq("company_id", co.id).order("expires_on", { nullsFirst: false }),
       sb.from("requests").select("*, offices(name), request_stages(idx,title,planned_days,started_at,done_at)").eq("company_id", co.id).order("created_at", { ascending: false }),
       sb.from("notifications").select("*").eq("user_id", uid).order("created_at", { ascending: false }).limit(4),
+      sb.rpc("company_usage", { cid: co.id }),
+      sb.from("plans").select("title,storage_bytes").eq("id", co.plan).maybeSingle(),
+      sb.from("company_files").select("id", { count: "exact", head: true }).eq("company_id", co.id),
     ]);
     const doneWithOffice = (reqs || []).filter((r) => r.status === "done" && r.office_id);
     const { data: rated } = doneWithOffice.length ? await sb.from("ratings").select("request_id").in("request_id", doneWithOffice.map((r) => r.id)) : { data: [] };
     const ratedIds = new Set((rated || []).map((x) => x.request_id));
-    return { svcs, companies, co, docs: docs || [], reqs: reqs || [], notes: notes || [], toRate: doneWithOffice.find((r) => !ratedIds.has(r.id)) };
+    return { svcs, companies, co, docs: docs || [], reqs: reqs || [], notes: notes || [], used: Number(used || 0), plan, fileCount: fileCount || 0, toRate: doneWithOffice.find((r) => !ratedIds.has(r.id)) };
   }, [uid, companyId]);
 
   if (error) return <LoadError />;
   if (!data) return <Loading />;
-  const { svcs, companies, co, docs, reqs, notes, toRate } = data;
+  const { svcs, companies, co, docs, reqs, notes, toRate, used, plan, fileCount } = data;
 
   if (!companies.length) return (
     <>
@@ -125,6 +129,12 @@ export default function OwnerHome({ companyId }: { companyId?: string }) {
           </section>
         </div>
         <aside className="split-side">
+          <section className="panel">
+            <div className="row between"><h2>ملف الشركة</h2><span className="note">{num(fileCount)} ملف</span></div>
+            {plan && <div className="meter" aria-hidden="true"><i style={{ width: `${Math.min(100, Math.round((used / plan.storage_bytes) * 100))}%` }} /></div>}
+            {plan && <small className="note">{fmtSize(used)} من {fmtSize(plan.storage_bytes)} · الباقة {plan.title}</small>}
+            <Link className="btn" href={`/companies/${co.id}/files`}>{fileCount ? "فتح ملف الشركة وإرساله" : "ارفع صور مستنداتك"}</Link>
+          </section>
           <section className="panel">
             <div className="row between"><h2>آخر التحديثات</h2><Link className="link" href="/alerts">الكل</Link></div>
             {notes.length ? notes.map((n) => (

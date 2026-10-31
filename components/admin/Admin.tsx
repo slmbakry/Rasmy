@@ -6,6 +6,7 @@ import { sb } from "@/lib/supabase";
 import { DAY, days, fmtDate, money, num } from "@/lib/format";
 import { services, sortStages, stageLate } from "@/lib/data";
 import { readSession, writeSession } from "@/lib/storage";
+import { fmtSize } from "@/lib/files";
 import { useLoad, useSession } from "../session";
 import { Head, Kpi, LoadError, Loading } from "../ui";
 
@@ -316,6 +317,52 @@ export function Users() {
             ))}
           </tbody></table>
         )}
+      </div></section>
+    </>
+  );
+}
+
+// Companies and their plans. Until payments arrive, the admin sets each company's plan.
+export function Companies() {
+  const { toast } = useSession();
+  const [demo, setDemo] = useDemo();
+  const { data, error, reload } = useLoad(async () => {
+    let q = sb.from("companies").select("id,name,plan,is_demo,created_at,owner_id").order("created_at", { ascending: false });
+    if (!demo) q = q.eq("is_demo", false);
+    const [{ data: list, error }, { data: plans }] = await Promise.all([q, sb.from("plans").select("id,title,storage_bytes").order("sort")]);
+    if (error) throw error;
+    const [used, { data: people }] = await Promise.all([
+      Promise.all((list || []).map((c) => sb.rpc("company_usage", { cid: c.id }).then((r) => Number(r.data || 0)))),
+      sb.from("profiles").select("id,email").in("id", [...new Set((list || []).map((c) => c.owner_id))]),
+    ]);
+    const email = Object.fromEntries((people || []).map((p) => [p.id, p.email]));
+    return { list: (list || []).map((c, i) => ({ ...c, used: used[i], email: email[c.owner_id] })) as any[], plans: plans || [] };
+  }, [demo]);
+  const setPlan = async (id: string, plan: string) => {
+    const { error } = await sb.from("companies").update({ plan }).eq("id", id);
+    if (error) return toast("تعذّر تغيير الباقة", true);
+    toast("تم تغيير الباقة"); reload();
+  };
+  return (
+    <>
+      <Head eyebrow="الشركات" title="الشركات وباقاتها">
+        <p>الباقة تحدد مساحة تخزين ملفات الشركة وجودة الصور. إلى أن يعمل الدفع الإلكتروني، يمكنك تغيير باقة أي شركة من هنا.</p>
+        <DemoSwitch on={demo} set={setDemo} />
+      </Head>
+      <section className="panel"><div className="table-wrap">
+        {error ? <p className="empty">تعذّر تحميل الشركات</p> : !data ? <Loading /> : data.list.length ? (
+          <table><thead><tr><th>الشركة</th><th>صاحب العمل</th><th>المساحة المستخدمة</th><th>الباقة</th></tr></thead><tbody>
+            {data.list.map((c) => {
+              const lim = data.plans.find((p) => p.id === c.plan)?.storage_bytes || 1;
+              return (
+                <tr key={c.id}><td>{c.name}{c.is_demo && <> <span className="chip">تجريبي</span></>}</td>
+                  <td className="ltr">{c.email || ""}</td>
+                  <td>{fmtSize(c.used)} <small className="note">({num(Math.round((c.used / lim) * 100))}٪)</small></td>
+                  <td><select value={c.plan} onChange={(e) => setPlan(c.id, e.target.value)}>{data.plans.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}</select></td></tr>
+              );
+            })}
+          </tbody></table>
+        ) : <p className="empty">لا توجد شركات بعد.</p>}
       </div></section>
     </>
   );

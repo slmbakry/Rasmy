@@ -10,7 +10,7 @@ import { Icon, Loading } from "./ui";
 import { Consent, Login, NotInvited, SetPassword } from "./auth";
 
 const NAV: Record<Role, [string, string, string][]> = {
-  admin: [["/", "الرئيسية", "home"], ["/admin/performance", "أداء المكاتب", "chart"], ["/admin/invites", "الدعوات", "mail"], ["/admin/offices", "المكاتب", "building"], ["/admin/users", "المستخدمون", "users"]],
+  admin: [["/", "الرئيسية", "home"], ["/admin/performance", "أداء المكاتب", "chart"], ["/admin/invites", "الدعوات", "mail"], ["/admin/offices", "المكاتب", "building"], ["/admin/companies", "الشركات", "doc"], ["/admin/users", "المستخدمون", "users"]],
   owner: [["/", "لوحتي", "home"], ["/guide", "مشروع جديد", "pulse"], ["/companies/new", "إضافة شركة", "plus"]],
   office: [["/", "الطلبات", "list"]],
 };
