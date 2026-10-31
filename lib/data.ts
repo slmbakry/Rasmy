@@ -22,14 +22,14 @@ export async function services(): Promise<Services> {
 
 // How a document stands today: ok, renew soon, or expired.
 export function docStatus(doc: { expires_on: string | null }, svc?: Service) {
-  if (!doc.expires_on) return { cls: "ok", label: "مالوش تاريخ انتهاء", left: null as number | null, startOn: null as Date | null };
+  if (!doc.expires_on) return { cls: "ok", label: "بلا تاريخ انتهاء", left: null as number | null, startOn: null as Date | null };
   const exp = new Date(doc.expires_on); exp.setHours(0, 0, 0, 0);
   const left = Math.round((exp.getTime() - today().getTime()) / DAY);
   const lead = (svc?.self_days || 7) + REMINDER_BUFFER_DAYS;
   const startOn = new Date(exp.getTime() - lead * DAY);
   if (left < 0) return { cls: "bad", label: "منتهي", left, startOn };
   if (today() >= startOn) return { cls: "warn", label: "ابدأ التجديد", left, startOn };
-  return { cls: "ok", label: "سليم", left, startOn };
+  return { cls: "ok", label: "ساري", left, startOn };
 }
 
 // Offices that offer a service, with their price, time and average ratings.
@@ -53,14 +53,14 @@ export async function optionsFor(serviceId: string, preview: boolean): Promise<O
       pro: s ? s.pro / s.n : null, speed: s ? s.speed / s.n : null, count: s ? s.n : 0,
       done: perfOf[r.offices.id]?.done || 0, onTime: perfOf[r.offices.id]?.on_time || 0 } as Option;
   }).sort((a, b) => (b.pro ?? 0) - (a.pro ?? 0));
-  return [{ key: "self", officeId: null, label: "هعملها بنفسي", sub: "من البوابة الإلكترونية أو بالتقديم بنفسك", fee: 0, cost: Number(svc.gov_fee), days: svc.self_days }, ...offices];
+  return [{ key: "self", officeId: null, label: "سأنفذها بنفسي", sub: "من البوابة الإلكترونية أو بالتقديم بنفسك", fee: 0, cost: Number(svc.gov_fee), days: svc.self_days }, ...offices];
 }
 
 // Ratings come from owners; the on-time share comes from the requests' own dates.
 export function optionLabel(o: Option) {
   if (!o.officeId) return o.sub;
-  const parts = [o.count ? `احترافية ${num(o.pro.toFixed(1))} · سرعة ${num(o.speed.toFixed(1))} · ${num(o.count)} تقييم` : "لسه مفيش تقييمات"];
-  if (o.done) parts.push(`خلّص ${num(Math.round((o.onTime / o.done) * 100))}٪ من ${num(o.done)} طلب في موعده`);
+  const parts = [o.count ? `احترافية ${num(o.pro.toFixed(1))} · سرعة ${num(o.speed.toFixed(1))} · ${num(o.count)} تقييم` : "لا توجد تقييمات بعد"];
+  if (o.done) parts.push(`التزم بالموعد في ${num(Math.round((o.onTime / o.done) * 100))}٪ من ${num(o.done)} طلب`);
   return parts.join(" · ");
 }
 
@@ -73,6 +73,6 @@ export function stageLate(stage?: Stage | null) {
 
 export const sortStages = <T extends Stage>(st?: T[] | null) => (st || []).slice().sort((a, b) => a.idx - b.idx);
 
-export const EVENTS: Record<string, string> = { rated: "صاحب العمل قيّم المكتب", created: "اتعمل الطلب", accepted: "المكتب قبل الطلب", declined: "المكتب اعتذر عن الطلب",
-  stage_done: "خلصت مرحلة", done: "خلص الطلب", cancelled: "اتلغى الطلب", note: "ملاحظة", file: "اترفع ملف" };
-export const STATUS: Record<string, [string, string]> = { new: ["", "جديد"], accepted: ["", "المكتب قبله"], in_progress: ["warn", "جاري التنفيذ"], done: ["ok", "تم"], cancelled: ["", "ملغي"] };
+export const EVENTS: Record<string, string> = { rated: "قيّم صاحب العمل المكتب", created: "تم إنشاء الطلب", accepted: "قبل المكتب الطلب", declined: "اعتذر المكتب عن الطلب",
+  stage_done: "اكتملت مرحلة", done: "اكتمل الطلب", cancelled: "أُلغي الطلب", note: "ملاحظة", file: "رُفع ملف" };
+export const STATUS: Record<string, [string, string]> = { new: ["", "جديد"], accepted: ["", "قبله المكتب"], in_progress: ["warn", "قيد التنفيذ"], done: ["ok", "تم"], cancelled: ["", "ملغي"] };

@@ -35,8 +35,8 @@ export function Icon({ name, size = 20 }: { name: string; size?: number }) {
   );
 }
 
-export const Loading = () => <div className="loading">جاري التحميل</div>;
-export const LoadError = () => <section className="panel"><p>حصلت مشكلة في تحميل الصفحة. حدّث الصفحة وجرب تاني.</p></section>;
+export const Loading = () => <div className="loading">جارٍ التحميل</div>;
+export const LoadError = () => <section className="panel"><p>حدثت مشكلة أثناء تحميل الصفحة. حدّث الصفحة وحاول مرة أخرى.</p></section>;
 
 export function Kpi({ ic, tone = "", value, label }: { ic: string; tone?: string; value: React.ReactNode; label: React.ReactNode }) {
   return (
@@ -88,12 +88,12 @@ export function OptionCards({ opts, name, picked, onPick }: { opts: Option[]; na
 export function StageRow({ stage, isNow, onFinish }: { stage: Stage; isNow: boolean; onFinish?: () => Promise<void> }) {
   const [busy, setBusy] = useState(false);
   const late = isNow ? stageLate(stage) : 0;
-  const note = stage.done_at ? "خلصت " + fmtDate(stage.done_at) : late ? `متأخرة ${days(late)}` : "المدة المتوقعة " + days(stage.planned_days);
+  const note = stage.done_at ? "اكتملت في " + fmtDate(stage.done_at) : late ? `متأخرة ${days(late)}` : "المدة المتوقعة " + days(stage.planned_days);
   return (
     <div className={`tr ${stage.done_at ? "done" : isNow ? "now" : ""}${late ? " late" : ""}`}>
       <span className="dot" aria-hidden="true" />
       <div><p>{stage.title}</p><small className="note">{note}</small></div>
-      {onFinish && <button className="btn small" type="button" disabled={busy} onClick={async () => { setBusy(true); await onFinish(); setBusy(false); }}>خلصت</button>}
+      {onFinish && <button className="btn small" type="button" disabled={busy} onClick={async () => { setBusy(true); await onFinish(); setBusy(false); }}>تمت</button>}
     </div>
   );
 }
@@ -115,24 +115,24 @@ export function FilesBlock({ requestId }: { requestId: string }) {
   }, [prefix]);
   const open = async (name: string) => {
     const { data: s, error } = await sb.storage.from("files").createSignedUrl(`${prefix}/${name}`, 300);
-    if (error) return toast("ماقدرناش نفتح الملف", true);
+    if (error) return toast("تعذّر فتح الملف", true);
     window.open(s.signedUrl, "_blank", "noopener");
   };
   const upload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]; e.target.value = ""; if (!f) return;
-    if (f.size > 10 * 1024 * 1024) return toast("الملف أكبر من ١٠ ميجا", true);
+    if (f.size > 10 * 1024 * 1024) return toast("حجم الملف أكبر من ١٠ ميجابايت", true);
     const safe = f.name.replace(/[^\w.\-؀-ۿ]+/g, "_");
     const { error } = await sb.storage.from("files").upload(`${prefix}/${Date.now()}-${safe}`, f);
-    if (error) return toast("ماقدرناش نرفع الملف", true);
+    if (error) return toast("تعذّر رفع الملف", true);
     await sb.from("events").insert({ request_id: requestId, actor_id: uid, kind: "file", note: f.name });
-    toast("اترفع الملف"); reload();
+    toast("تم رفع الملف"); reload();
   };
   return (
     <>
       <h3 className="sub">الملفات</h3>
       {!files ? <Loading /> : files.length ? files.map((f) => (
-        <div className="kv" key={f.name}><span>{f.name.replace(/^\d+-/, "")}</span><button className="btn small" type="button" onClick={() => open(f.name)}>افتح</button></div>
-      )) : <p className="empty">مفيش ملفات لسه.</p>}
+        <div className="kv" key={f.name}><span>{f.name.replace(/^\d+-/, "")}</span><button className="btn small" type="button" onClick={() => open(f.name)}>عرض</button></div>
+      )) : <p className="empty">لا توجد ملفات بعد.</p>}
       <label className="btn small" htmlFor={`up-${requestId}`}>ارفع ملف</label>
       <input type="file" id={`up-${requestId}`} hidden onChange={upload} />
     </>

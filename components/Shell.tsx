@@ -10,8 +10,8 @@ import { Icon, Loading } from "./ui";
 import { Consent, Login, NotInvited, SetPassword } from "./auth";
 
 const NAV: Record<Role, [string, string, string][]> = {
-  admin: [["/", "الرئيسية", "home"], ["/admin/performance", "أداء المكاتب", "chart"], ["/admin/invites", "الدعوات", "mail"], ["/admin/offices", "المكاتب", "building"], ["/admin/users", "المستخدمين", "users"]],
-  owner: [["/", "لوحتي", "home"], ["/guide", "ابدأ مشروع", "pulse"], ["/companies/new", "ضيف شركة", "plus"]],
+  admin: [["/", "الرئيسية", "home"], ["/admin/performance", "أداء المكاتب", "chart"], ["/admin/invites", "الدعوات", "mail"], ["/admin/offices", "المكاتب", "building"], ["/admin/users", "المستخدمون", "users"]],
+  owner: [["/", "لوحتي", "home"], ["/guide", "مشروع جديد", "pulse"], ["/companies/new", "إضافة شركة", "plus"]],
   office: [["/", "الطلبات", "list"]],
 };
 
@@ -62,11 +62,11 @@ function PreviewBar() {
       ))}
       {s.viewAs === "office" && (
         <select aria-label="المكتب" value={s.previewOffice || ""} onChange={(e) => { s.setPreviewOffice(e.target.value || null); router.push("/"); }}>
-          <option value="">اختار المكتب</option>
+          <option value="">اختر المكتب</option>
           {(offices || []).map((o) => <option key={o.id} value={o.id}>{o.name}{o.is_demo ? " (تجريبي)" : ""}</option>)}
         </select>
       )}
-      <span className="preview-note">البيانات اللي تعملها هنا بتتعلّم إنها تجريبية</span>
+      <span className="preview-note">البيانات التي تنشئها هنا تُسجَّل كبيانات تجريبية</span>
     </div>
   );
 }

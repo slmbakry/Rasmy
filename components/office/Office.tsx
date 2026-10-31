@@ -11,7 +11,7 @@ import { FilesBlock, Head, Kpi, LoadError, Loading, StageRow, finishStage } from
 
 function NoOffice() {
   const { profile } = useSession();
-  return <section className="panel"><p>{profile.role === "admin" ? "اختار المكتب اللي عايز تجرب بيه من الشريط اللي فوق." : "حسابك مش مربوط بمكتب لسه. كلم مدير المنصة."}</p></section>;
+  return <section className="panel"><p>{profile.role === "admin" ? "اختر المكتب الذي تريد التجربة به من الشريط في الأعلى." : "حسابك غير مرتبط بمكتب بعد. تواصل مع مدير المنصة."}</p></section>;
 }
 
 // Days late on the stage in progress, if any.
@@ -34,24 +34,24 @@ export function OfficeHome() {
   if (!data) return <Loading />;
   const { svcs, office, all } = data;
   const groups: [string, string, any[]][] = [
-    ["new", "طلبات جديدة مستنية ردك", all.filter((r) => r.status === "new")],
-    ["work", "شغال عليها", all.filter(working)],
-    ["done", "خلصت", all.filter((r) => r.status === "done").slice(0, 10)],
+    ["new", "طلبات جديدة بانتظار ردك", all.filter((r) => r.status === "new")],
+    ["work", "قيد التنفيذ", all.filter(working)],
+    ["done", "مكتملة", all.filter((r) => r.status === "done").slice(0, 10)],
   ];
   const lateCount = groups[1][2].filter((r) => lateOf(r)).length;
   return (
     <>
-      <Head eyebrow={office?.name || "المكتب"} title="الطلبات"><p>اقبل الطلب الأول، وبعدها علّم كل مرحلة لما تخلص. صاحب العمل بيشوف التحديث في نفس اللحظة.</p></Head>
+      <Head eyebrow={office?.name || "المكتب"} title="الطلبات"><p>اقبل الطلب أولًا، ثم حدّد كل مرحلة عند اكتمالها. يرى صاحب العمل التحديث في اللحظة نفسها.</p></Head>
       <div className="kpis">
         <Kpi ic="mail" tone={groups[0][2].length ? "warn" : ""} value={groups[0][2].length} label="طلب جديد" />
-        <Kpi ic="list" value={groups[1][2].length} label="شغال عليه" />
+        <Kpi ic="list" value={groups[1][2].length} label="قيد التنفيذ" />
         <Kpi ic="alert" tone={lateCount ? "bad" : "ok"} value={lateCount} label="متأخر" />
-        <Kpi ic="check" tone="ok" value={all.filter((r) => r.status === "done").length} label="خلص" />
+        <Kpi ic="check" tone="ok" value={all.filter((r) => r.status === "done").length} label="مكتمل" />
       </div>
       {groups.map(([k, title, list]) => (
         <section key={k} className="panel"><h2>{title}</h2>
           {list.length ? <div className="reqs">{list.map((r) => <Card key={r.id} r={r} title={svcs[r.service_id]?.title || r.service_id} />)}</div>
-            : <p className="empty">{k === "new" ? "مفيش طلبات جديدة." : "مفيش حاجة هنا."}</p>}
+            : <p className="empty">{k === "new" ? "لا توجد طلبات جديدة." : "لا يوجد شيء هنا."}</p>}
         </section>
       ))}
     </>
@@ -93,7 +93,7 @@ export function Job({ id }: { id: string }) {
   if (error) return <LoadError />;
   if (!data) return <Loading />;
   const { r, s, stages, events, owner } = data;
-  if (!r) return <section className="panel"><p>الطلب ده مش موجود.</p><Link className="btn" href="/">رجوع للطلبات</Link></section>;
+  if (!r) return <section className="panel"><p>هذا الطلب غير موجود.</p><Link className="btn" href="/">العودة إلى الطلبات</Link></section>;
 
   const isWorking = working(r);
   const cur = stages.findIndex((x) => !x.done_at);
@@ -103,39 +103,39 @@ export function Job({ id }: { id: string }) {
     setBusy(true);
     const now = new Date().toISOString();
     const { error } = await sb.from("requests").update({ status: "accepted", accepted_at: now }).eq("id", id).eq("status", "new");
-    if (error) { setBusy(false); return toast("ماقدرناش نقبل الطلب", true); }
+    if (error) { setBusy(false); return toast("تعذّر قبول الطلب", true); }
     if (stages[0]) await sb.from("request_stages").update({ started_at: now }).eq("id", stages[0].id).is("started_at", null);
     await log("accepted");
-    setBusy(false); toast("اتقبل الطلب، وبدأت أول مرحلة"); reload();
+    setBusy(false); toast("تم قبول الطلب، وبدأت المرحلة الأولى"); reload();
   };
   const decline = async () => {
-    if (!why.trim()) return toast("اكتب سبب الاعتذار الأول", true);
+    if (!why.trim()) return toast("اكتب سبب الاعتذار أولًا", true);
     const { error } = await sb.from("requests").update({ status: "cancelled" }).eq("id", id).eq("status", "new");
-    if (error) return toast("ماقدرناش نسجل الاعتذار", true);
+    if (error) return toast("تعذّر تسجيل الاعتذار", true);
     await log("declined", why.trim());
-    toast("اتسجل الاعتذار"); router.push("/");
+    toast("تم تسجيل الاعتذار"); router.push("/");
   };
   const finish = async (st) => {
     const { error } = await finishStage(st);
-    if (error) return toast("ماقدرناش نحدّث المرحلة", true);
-    toast(stages.filter((x) => !x.done_at).length === 1 ? "خلص الطلب كله" : "خلصت المرحلة"); reload();
+    if (error) return toast("تعذّر تحديث المرحلة", true);
+    toast(stages.filter((x) => !x.done_at).length === 1 ? "اكتمل الطلب بالكامل" : "اكتملت المرحلة"); reload();
   };
   const sendNote = async (e: React.FormEvent) => {
     e.preventDefault();
     const { error } = await log("note", note.trim());
-    if (error) return toast("ماقدرناش نبعت الملاحظة", true);
-    setNote(""); toast("اتبعتت الملاحظة"); reload();
+    if (error) return toast("تعذّر إرسال الملاحظة", true);
+    setNote(""); toast("تم إرسال الملاحظة"); reload();
   };
 
   return (
     <>
       <Head back={["/", "الطلبات"]} eyebrow={r.companies?.name || ""} title={s?.title || r.service_id}>
-        <p>{r.status === "new" ? "اقبل الطلب عشان تبدأ أول مرحلة، أو اعتذر وقول السبب." : isWorking ? "علّم المرحلة لما تخلص، والمرحلة اللي بعدها هتبدأ لوحدها." : ""}</p>
+        <p>{r.status === "new" ? "اقبل الطلب لتبدأ المرحلة الأولى، أو اعتذر مع ذكر السبب." : isWorking ? "حدّد المرحلة عند اكتمالها، وستبدأ المرحلة التالية تلقائيًا." : ""}</p>
       </Head>
       {r.status === "new" && (
         <section className="panel"><h2>رد على الطلب</h2>
           <div className="row"><button className="btn primary" type="button" disabled={busy} onClick={accept}>اقبل الطلب</button></div>
-          <div className="field"><label htmlFor="why">لو هتعتذر، اكتب السبب</label><input id="why" value={why} onChange={(e) => setWhy(e.target.value)} /></div>
+          <div className="field"><label htmlFor="why">إذا كنت ستعتذر، فاكتب السبب</label><input id="why" value={why} onChange={(e) => setWhy(e.target.value)} /></div>
           <button className="btn danger small" type="button" onClick={decline}>اعتذر عن الطلب</button>
         </section>
       )}
@@ -148,7 +148,7 @@ export function Job({ id }: { id: string }) {
           {isWorking && (
             <form className="stack" onSubmit={sendNote}>
               <div className="field"><label htmlFor="note">ملاحظة لصاحب العمل</label><input id="note" required value={note} onChange={(e) => setNote(e.target.value)} /></div>
-              <button className="btn small" type="submit">ابعت الملاحظة</button>
+              <button className="btn small" type="submit">إرسال الملاحظة</button>
             </form>
           )}
         </section>
@@ -160,7 +160,7 @@ export function Job({ id }: { id: string }) {
           <div className="kv"><span>تاريخ الطلب</span><b>{fmtDate(r.created_at)}</b></div>
           {s?.docs?.length > 0 && <div className="docs"><b>المستندات المطلوبة</b><ul>{s.docs.map((x) => <li key={x}>{x}</li>)}</ul></div>}
           <div><FilesBlock requestId={id} /></div>
-          <h3 className="sub">السجل</h3>
+          <h3 className="sub">سجل النشاط</h3>
           {events.map((e) => <div key={e.id} className="kv"><span>{EVENTS[e.kind] || e.kind}{e.note ? ": " + e.note : ""}</span><small>{fmtDate(e.created_at)}</small></div>)}
         </section>
       </div>

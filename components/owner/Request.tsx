@@ -23,7 +23,7 @@ export default function Request({ id }: { id: string }) {
   if (error) return <LoadError />;
   if (!data) return <Loading />;
   const { r, s, stages, events, canRate, rating } = data;
-  if (!r) return <section className="panel"><p>الطلب ده مش موجود.</p></section>;
+  if (!r) return <section className="panel"><p>هذا الطلب غير موجود.</p></section>;
 
   const self = !r.office_id;
   const cur = stages.findIndex((x) => !x.done_at);
@@ -35,29 +35,29 @@ export default function Request({ id }: { id: string }) {
 
   const finish = async (st) => {
     const { error } = await finishStage(st);
-    if (error) return toast("ماقدرناش نحدّث المرحلة", true);
+    if (error) return toast("تعذّر تحديث المرحلة", true);
     reload();
   };
   const cancel = async () => {
     const { error } = await sb.from("requests").update({ status: "cancelled" }).eq("id", id);
-    if (error) return toast("ماقدرناش نلغي الطلب", true);
+    if (error) return toast("تعذّر إلغاء الطلب", true);
     await sb.from("events").insert({ request_id: id, actor_id: uid, kind: "cancelled" });
-    toast("اتلغى الطلب"); reload();
+    toast("تم إلغاء الطلب"); reload();
   };
 
   return (
     <>
       <Head back={[`/companies/${r.company_id}`, "لوحتي"]} eyebrow={r.companies?.name || ""} title={s.title}>
-        <p>{self ? "بتنفذ الطلب ده بنفسك، وتقدر تعلّم كل مرحلة لما تخلص." : `بينفذه ${r.offices?.name || ""}. المكتب هو اللي بيحدّث المراحل.`}</p>
+        <p>{self ? "تنفذ هذا الطلب بنفسك، ويمكنك تحديد كل مرحلة عند اكتمالها." : `ينفذه ${r.offices?.name || ""}. والمكتب هو من يحدّث المراحل.`}</p>
       </Head>
       <div className="kpis">
         <Kpi ic={r.status === "done" ? "check" : "pulse"} tone={tone} value={label} label="الحالة" />
-        <Kpi ic="list" tone={lateNow ? "bad" : ""} value={`${num(doneCount)} من ${num(stages.length)}`} label={lateNow ? `المرحلة متأخرة ${days(lateNow)}` : "مراحل خلصت"} />
+        <Kpi ic="list" tone={lateNow ? "bad" : ""} value={`${num(doneCount)} من ${num(stages.length)}`} label={lateNow ? `المرحلة متأخرة ${days(lateNow)}` : "مراحل مكتملة"} />
         <Kpi ic="chart" tone="ok" value={money(r.quoted_fee)} label="التكلفة المعلنة" />
-        <Kpi ic="clock" tone="warn" value={r.status === "done" ? fmtDate(r.completed_at) : fmtDate(due)} label={r.status === "done" ? "خلص يوم" : "الموعد المتوقع"} />
+        <Kpi ic="clock" tone="warn" value={r.status === "done" ? fmtDate(r.completed_at) : fmtDate(due)} label={r.status === "done" ? "اكتمل في" : "الموعد المتوقع"} />
       </div>
-      {!self && r.status === "new" && <p className="alert">الطلب لسه مستني المكتب يقبله.</p>}
-      {r.escalated_at && open && <p className="alert">الإدارة اتبلغت بالتأخير ده وبتتابعه مع المكتب.</p>}
+      {!self && r.status === "new" && <p className="alert">الطلب بانتظار قبول المكتب.</p>}
+      {r.escalated_at && open && <p className="alert">تم إبلاغ الإدارة بهذا التأخير، وهي تتابعه مع المكتب.</p>}
       <div className="split">
         <div className="split-main">
           {canRate && <RateBlock rating={rating} office={r.offices?.name} requestId={id} officeId={r.office_id} onDone={reload} />}
@@ -65,7 +65,7 @@ export default function Request({ id }: { id: string }) {
             <div className="track">
               {stages.map((x, i) => <StageRow key={x.id} stage={x} isNow={i === cur && open} onFinish={self && i === cur && open ? () => finish(x) : undefined} />)}
             </div>
-            {r.status === "new" && <button className="btn danger small" type="button" onClick={cancel}>الغي الطلب</button>}
+            {r.status === "new" && <button className="btn danger small" type="button" onClick={cancel}>إلغاء الطلب</button>}
           </section>
         </div>
         <aside className="split-side">
@@ -76,7 +76,7 @@ export default function Request({ id }: { id: string }) {
             </section>
           )}
           <section className="panel"><FilesBlock requestId={id} /></section>
-          <section className="panel"><h2>السجل</h2>
+          <section className="panel"><h2>سجل النشاط</h2>
             {events.slice().reverse().map((e) => (
               <div key={e.id} className="feed">
                 <span className={`dot ${["declined", "cancelled"].includes(e.kind) ? "bad" : e.kind === "note" || e.kind === "file" ? "warn" : ""}`} aria-hidden="true" />
@@ -106,21 +106,21 @@ function RateBlock({ rating, office, requestId, officeId, onDone }) {
   const save = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
-    if (!f.get("pro") || !f.get("speed")) return toast("اختار درجة للاحترافية والسرعة", true);
+    if (!f.get("pro") || !f.get("speed")) return toast("اختر تقييمًا للاحترافية والسرعة", true);
     const { error } = await sb.from("ratings").insert({ request_id: requestId, office_id: officeId, owner_id: uid,
       professionalism: Number(f.get("pro")), speed: Number(f.get("speed")), comment: String(f.get("comment")).trim() || null });
-    if (error) return toast("ماقدرناش نحفظ التقييم", true);
+    if (error) return toast("تعذّر حفظ التقييم", true);
     await sb.from("events").insert({ request_id: requestId, actor_id: uid, kind: "rated" });
-    toast("شكراً، اتحفظ تقييمك"); onDone();
+    toast("شكرًا، تم حفظ تقييمك"); onDone();
   };
   return (
     <section className="panel"><h2>قيّم {office || "المكتب"}</h2>
-      <p className="note">تقييمك بيساعد أصحاب الأعمال التانيين يختاروا. ده بيتحسب مع نسبة التزام المكتب بالمواعيد.</p>
+      <p className="note">يساعد تقييمك أصحاب الأعمال الآخرين على الاختيار، ويُحتسب مع نسبة التزام المكتب بالمواعيد.</p>
       <form className="rate" onSubmit={save}>
         <div className="field"><label>الاحترافية والتعامل</label>{scale("pro")}</div>
         <div className="field"><label>السرعة</label>{scale("speed")}</div>
-        <div className="field"><label htmlFor="comment">تعليق، لو حابب</label><input id="comment" name="comment" /></div>
-        <button className="btn primary" type="submit">احفظ التقييم</button>
+        <div className="field"><label htmlFor="comment">تعليق (اختياري)</label><input id="comment" name="comment" /></div>
+        <button className="btn primary" type="submit">حفظ التقييم</button>
       </form>
     </section>
   );

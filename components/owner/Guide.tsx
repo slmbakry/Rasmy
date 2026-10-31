@@ -9,10 +9,10 @@ import { useLoad, useSession } from "../session";
 import { Head, Icon, Kpi, LoadError, Loading, OptionCards } from "../ui";
 
 const QUESTIONS = [
-  { key: "partners", q: "هتبدأ لوحدك ولا معاك شركاء؟", opts: [["alone", "لوحدي", "المشروع ملكي بالكامل"], ["many", "معايا شريك أو أكتر", "اتنين أو أكتر في الملكية"]] },
-  { key: "activity", q: "إيه طبيعة النشاط؟", opts: [["shop", "تجاري بمحل", "بيع أو خدمة من مكان مفتوح للناس"], ["online", "خدمات أو بيع أونلاين", "من غير محل مفتوح للجمهور"], ["factory", "صناعي", "ورشة أو مصنع"]] },
-  { key: "turnover", q: "حجم المبيعات السنوي المتوقع؟", opts: [["s", "أقل من نص مليون جنيه", "مشروع صغير في البداية"], ["m", "من نص مليون لحد عشرين مليون", "مشروع متوسط"], ["l", "أكتر من عشرين مليون", "مشروع كبير"]] },
-  { key: "staff", q: "هتشغل موظفين؟", opts: [["yes", "أيوه", "موظف أو أكتر"], ["no", "لأ، في الأول لوحدي", "من غير موظفين حالياً"]] },
+  { key: "partners", q: "هل ستبدأ وحدك أم مع شركاء؟", opts: [["alone", "وحدي", "المشروع ملكي بالكامل"], ["many", "معي شريك أو أكثر", "اثنان أو أكثر في الملكية"]] },
+  { key: "activity", q: "ما طبيعة النشاط؟", opts: [["shop", "تجاري بمحل", "بيع أو خدمة من مكان مفتوح للجمهور"], ["online", "خدمات أو بيع عبر الإنترنت", "دون محل مفتوح للجمهور"], ["factory", "صناعي", "ورشة أو مصنع"]] },
+  { key: "turnover", q: "ما حجم المبيعات السنوي المتوقع؟", opts: [["s", "أقل من نصف مليون جنيه", "مشروع صغير في البداية"], ["m", "من نصف مليون إلى عشرين مليون", "مشروع متوسط"], ["l", "أكثر من عشرين مليون", "مشروع كبير"]] },
+  { key: "staff", q: "هل ستوظف عاملين؟", opts: [["yes", "نعم", "موظف أو أكثر"], ["no", "لا، وحدي في البداية", "دون موظفين حاليًا"]] },
 ];
 const ANSWER_ICONS: Record<string, string> = { alone: "person", many: "users", shop: "building", online: "pulse", factory: "building", s: "chart", m: "chart", l: "chart", yes: "users", no: "person" };
 
@@ -21,9 +21,9 @@ const guide: { answers: Record<string, string>; qi: number; choices: Record<stri
   { answers: {}, qi: 0, choices: {}, open: null, name: "" };
 
 function entityFor(a: Record<string, string>) {
-  if (a.partners === "many") return { name: "شركة ذات مسئولية محدودة", why: "لأن معاك شركاء، والمسئولية بتبقى في حدود رأس المال.", company: true };
-  if (a.turnover === "s" && a.activity !== "factory") return { name: "منشأة فردية", why: "أبسط وأسرع وأرخص للبداية، لكن مسئوليتك عن الديون مش محدودة.", company: false };
-  return { name: "شركة الشخص الواحد", why: "بتفصل ذمتك عن ذمة الشركة، ومناسبة لحجم نشاطك.", company: true };
+  if (a.partners === "many") return { name: "شركة ذات مسئولية محدودة", why: "لأن لديك شركاء، وتكون المسؤولية في حدود رأس المال.", company: true };
+  if (a.turnover === "s" && a.activity !== "factory") return { name: "منشأة فردية", why: "الأبسط والأسرع والأقل تكلفة في البداية، لكن مسؤوليتك عن الديون غير محدودة.", company: false };
+  return { name: "شركة الشخص الواحد", why: "تفصل ذمتك المالية عن ذمة الشركة، وتناسب حجم نشاطك.", company: true };
 }
 function planSteps(a: Record<string, string>) {
   const list: string[] = [];
@@ -43,7 +43,7 @@ export function Guide() {
   const set = (fn: () => void) => { fn(); redraw((x) => x + 1); };
   return (
     <>
-      <Head eyebrow="الدليل" title="كام سؤال بسيط، وبعدها خريطتك جاهزة"><p>هنقترح عليك الكيان المناسب، والخطوات بالترتيب، وتكلفة ومدة كل خطوة.</p></Head>
+      <Head eyebrow="الدليل" title="أسئلة قليلة، ثم تصبح خريطتك جاهزة"><p>سنقترح عليك الكيان المناسب، والخطوات بالترتيب، وتكلفة كل خطوة ومدتها.</p></Head>
       <section className="panel quiz">
         <div className="row between">
           <span className="eyebrow">سؤال {num(guide.qi + 1)} من {num(QUESTIONS.length)}</span>
@@ -95,22 +95,22 @@ export function Plan() {
 
   const launch = async () => {
     const name = guide.name.trim();
-    if (!name) return toast("اكتب اسم مشروعك الأول", true);
+    if (!name) return toast("اكتب اسم مشروعك أولًا", true);
     setBusy(true);
     const { data: co, error } = await sb.from("companies").insert({ owner_id: uid, name, legal_form: e.name, status: "founding", is_demo: isPreview }).select().single();
-    if (error) { setBusy(false); return toast("ماقدرناش نسجل المشروع", true); }
+    if (error) { setBusy(false); return toast("تعذّر تسجيل المشروع", true); }
     const rows = list.map((id) => { const o = pick(id); return { company_id: co.id, owner_id: uid, service_id: id, office_id: o.officeId, quoted_fee: o.cost, quoted_days: o.days, is_demo: isPreview }; });
     const { error: e2 } = await sb.from("requests").insert(rows);
-    if (e2) { setBusy(false); return toast("اتسجل المشروع، لكن الطلبات ما اتعملتش. جرب تاني من الخريطة", true); }
+    if (e2) { setBusy(false); return toast("تم تسجيل المشروع، لكن تعذّر إنشاء الطلبات. حاول مرة أخرى من الخريطة", true); }
     Object.assign(guide, { answers: {}, qi: 0, choices: {}, name: "", open: null });
-    toast("اتعملت طلبات التأسيس، وتقدر تتابعها من لوحتك");
+    toast("تم إنشاء طلبات التأسيس، ويمكنك متابعتها من لوحتك");
     router.push("/companies/" + co.id);
   };
 
   return (
     <>
       <Head eyebrow="خريطتك" title={`${num(list.length)} خطوات توصلك لكيان رسمي`}>
-        <p>الكيان المناسب ليك: <b className="on-navy">{e.name}</b>. {e.why}</p>
+        <p>الكيان المناسب لك: <b className="on-navy">{e.name}</b>. {e.why}</p>
         <div className="chips">
           {a.turnover !== "l" && <span className="chip on-navy">مؤهل للنظام الضريبي المبسط</span>}
           {a.turnover !== "s" && <span className="chip on-navy">مطلوب تسجيل القيمة المضافة</span>}
@@ -119,7 +119,7 @@ export function Plan() {
       <div className="kpis">
         <Kpi ic="list" value={list.length} label="خطوات" />
         <Kpi ic="chart" tone="ok" value={money(cost)} label="التكلفة التقريبية" />
-        <Kpi ic="clock" tone="warn" value={days(time)} label="المدة لو ورا بعض" />
+        <Kpi ic="clock" tone="warn" value={days(time)} label="المدة إذا نُفذت متتالية" />
       </div>
       <div className="split">
         <div className="split-main steps">
@@ -136,9 +136,9 @@ export function Plan() {
                 {open && (
                   <div className="step-b">
                     <div className="docs"><b>المستندات المطلوبة</b><ul>{s.docs.map((d) => <li key={d}>{d}</li>)}</ul></div>
-                    <b>مين ينفذها؟</b>
+                    <b>من ينفذها؟</b>
                     <OptionCards opts={opts[id]} name={"alt-" + id} picked={cur.key} onPick={(k) => { guide.choices[id] = k; redraw((x) => x + 1); }} />
-                    {opts[id].length === 1 && <p className="note">لسه مفيش مكتب مسعّر الخدمة دي.</p>}
+                    {opts[id].length === 1 && <p className="note">لم يحدد أي مكتب سعرًا لهذه الخدمة بعد.</p>}
                   </div>
                 )}
               </div>
@@ -151,12 +151,12 @@ export function Plan() {
             <div>
               <div className="kv"><span>التكلفة التقريبية</span><b>{money(cost)}</b></div>
               <div className="kv"><span>منها رسوم حكومية</span><b>{money(gov)}</b></div>
-              <div className="kv"><span>المدة لو الخطوات ورا بعض</span><b>{days(time)}</b></div>
+              <div className="kv"><span>المدة إذا نُفذت الخطوات متتالية</span><b>{days(time)}</b></div>
             </div>
             <div className="field"><label htmlFor="co-name">اسم مشروعك</label>
               <input id="co-name" placeholder="مثلاً: مخبز النور" defaultValue={guide.name} onChange={(ev) => { guide.name = ev.target.value; }} /></div>
             <button className="btn primary" type="button" disabled={busy} onClick={launch}>ابدأ التنفيذ</button>
-            <p className="note">الأسعار من المكاتب المعتمدة، والرسوم الحكومية تقديرية وبتتأكد قبل الدفع.</p>
+            <p className="note">الأسعار من المكاتب المعتمدة، والرسوم الحكومية تقديرية ويتم تأكيدها قبل الدفع.</p>
           </section>
         </aside>
       </div>

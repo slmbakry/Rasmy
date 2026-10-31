@@ -22,7 +22,7 @@ function DemoSwitch({ on, set }: { on: boolean; set: (v: boolean) => void }) {
   return (
     <div className="tabs" role="tablist">
       <button className="tab" type="button" role="tab" aria-selected={!on} onClick={() => set(false)}>البيانات الحقيقية</button>
-      <button className="tab" type="button" role="tab" aria-selected={on} onClick={() => set(true)}>ومعاها التجريبية</button>
+      <button className="tab" type="button" role="tab" aria-selected={on} onClick={() => set(true)}>مع التجريبية</button>
     </div>
   );
 }
@@ -56,7 +56,7 @@ export function AdminHome() {
   }, [demo]);
   const head = (
     <Head eyebrow="لوحة المدير" title="نظرة سريعة">
-      <p>هنا بتشوف الطلبات المتأخرة والمكاتب اللي ماردتش. تقدر كمان تجرب المنصة كصاحب عمل أو كمكتب من الشريط اللي فوق.</p>
+      <p>هنا ترى الطلبات المتأخرة والمكاتب التي لم ترد بعد. ويمكنك أيضًا تجربة المنصة كصاحب عمل أو كمكتب من الشريط في الأعلى.</p>
       <DemoSwitch on={demo} set={setDemo} />
     </Head>
   );
@@ -76,28 +76,28 @@ export function AdminHome() {
       <div className="kpis">
         <Kpi ic="list" value={open.length} label="طلب مفتوح" />
         <Kpi ic="alert" tone={late.length ? "bad" : "ok"} value={late.length} label="طلب متأخر" />
-        <Kpi ic="clock" tone={waiting.length ? "warn" : "ok"} value={waiting.length} label="مستني رد المكتب" />
-        <Kpi ic="check" tone="ok" value={onTime === null ? "—" : num(onTime) + "٪"} label="خلصت في موعدها" />
+        <Kpi ic="clock" tone={waiting.length ? "warn" : "ok"} value={waiting.length} label="بانتظار رد المكتب" />
+        <Kpi ic="check" tone="ok" value={onTime === null ? "—" : num(onTime) + "٪"} label="اكتملت في موعدها" />
         <Kpi ic="users" value={users} label="مستخدم" />
-        <Kpi ic="mail" value={pending} label="دعوة مستنية" />
+        <Kpi ic="mail" value={pending} label="دعوة معلّقة" />
       </div>
       <section className="panel">
         <div className="row between"><h2>طلبات متأخرة</h2><Link className="btn small" href="/admin/performance">أداء المكاتب</Link></div>
         {late.length ? <div className="reqs">{late.map((r) => (
           <Link key={r.id} className="req late" href={`/requests/${r.id}`}>
-            <div className="row between"><b>{title(r)}</b><span className="chips">{r.escalated_at && <span className="chip warn">اتصعّد</span>}<span className="chip bad">متأخر {days(Math.max(r.stageLate, r.overdue))}</span></span></div>
+            <div className="row between"><b>{title(r)}</b><span className="chips">{r.escalated_at && <span className="chip warn">تم التصعيد</span>}<span className="chip bad">متأخر {days(Math.max(r.stageLate, r.overdue))}</span></span></div>
             <small>{r.companies?.name || ""} · {who(r)}{r.stage ? " · المرحلة الحالية: " + r.stage.title : ""}</small>
-            <small>{r.overdue ? `عدّى المدة المعلنة بـ${days(r.overdue)}` : ""}{r.overdue && r.stageLate ? " · " : ""}{r.stageLate ? `المرحلة متأخرة ${days(r.stageLate)}` : ""}</small>
+            <small>{r.overdue ? `تجاوز المدة المعلنة بـ${days(r.overdue)}` : ""}{r.overdue && r.stageLate ? " · " : ""}{r.stageLate ? `المرحلة متأخرة ${days(r.stageLate)}` : ""}</small>
           </Link>
-        ))}</div> : <p className="empty">مفيش طلبات متأخرة.</p>}
+        ))}</div> : <p className="empty">لا توجد طلبات متأخرة.</p>}
       </section>
-      <section className="panel"><h2>مكاتب ماردتش على طلبات</h2>
+      <section className="panel"><h2>مكاتب لم ترد على طلبات</h2>
         {waiting.length ? <div className="reqs">{waiting.map((r) => (
           <Link key={r.id} className="req" href={`/requests/${r.id}`}>
-            <div className="row between"><b>{title(r)}</b><span className="chips">{r.escalated_at && <span className="chip bad">اتصعّد</span>}<span className="chip warn">مستني {days(r.waiting)}</span></span></div>
+            <div className="row between"><b>{title(r)}</b><span className="chips">{r.escalated_at && <span className="chip bad">تم التصعيد</span>}<span className="chip warn">ينتظر منذ {days(r.waiting)}</span></span></div>
             <small>{r.companies?.name || ""} · {who(r)}</small>
           </Link>
-        ))}</div> : <p className="empty">كل المكاتب ردت على طلباتها.</p>}
+        ))}</div> : <p className="empty">ردّت جميع المكاتب على طلباتها.</p>}
       </section>
     </>
   );
@@ -138,13 +138,13 @@ export function Performance() {
   const star = (v: number | null) => (v === null ? "—" : num(v.toFixed(1)));
   return (
     <>
-      <Head back={["/", "الرئيسية"]} eyebrow="أداء المكاتب" title="مين بيلتزم بمواعيده">
-        <p>الأرقام دي محسوبة من تواريخ الطلبات نفسها، مش من رأي حد. الالتزام بالموعد معناه إن الطلب خلص في المدة اللي المكتب أعلنها أو أقل.</p>
+      <Head back={["/", "الرئيسية"]} eyebrow="أداء المكاتب" title="من يلتزم بمواعيده">
+        <p>تُحسب هذه الأرقام من تواريخ الطلبات نفسها، لا من آراء الأشخاص. ويعني الالتزام بالموعد أن الطلب اكتمل في المدة التي أعلنها المكتب أو أقل.</p>
         <DemoSwitch on={demo} set={setDemo} />
       </Head>
       {error ? <LoadError /> : !data ? <Loading /> : (
         <section className="panel"><div className="table-wrap">{data.length ? (
-          <table><thead><tr><th>المكتب</th><th>الطلبات</th><th>مفتوح</th><th>متأخر دلوقتي</th><th>خلص</th><th>نسبة القبول</th><th>متوسط وقت الرد</th><th>في الموعد</th><th>متوسط التأخير</th><th>الاحترافية</th><th>السرعة</th></tr></thead>
+          <table><thead><tr><th>المكتب</th><th>الطلبات</th><th>مفتوح</th><th>متأخر الآن</th><th>مكتمل</th><th>نسبة القبول</th><th>متوسط وقت الرد</th><th>في الموعد</th><th>متوسط التأخير</th><th>الاحترافية</th><th>السرعة</th></tr></thead>
             <tbody>{data.map((x) => (
               <tr key={x.o.id}>
                 <td>{x.o.name}{!x.o.active && <> <span className="chip">موقوف</span></>}{x.o.is_demo && <> <span className="chip">تجريبي</span></>}</td>
@@ -154,8 +154,8 @@ export function Performance() {
                 <td>{dur(x.delay)}</td><td>{star(x.pro)}</td><td>{star(x.speed)}</td>
               </tr>
             ))}</tbody></table>
-        ) : <p className="empty">مفيش مكاتب لسه.</p>}</div>
-          <p className="note">التقييمات من أصحاب العمل بعد ما الطلب يخلص.</p></section>
+        ) : <p className="empty">لا توجد مكاتب بعد.</p>}</div>
+          <p className="note">التقييمات من أصحاب العمل بعد اكتمال الطلب.</p></section>
       )}
     </>
   );
@@ -176,14 +176,14 @@ export function Invites() {
     const form = e.currentTarget, f = new FormData(form);
     const row = { email: String(f.get("email")).trim().toLowerCase(), role, invited_by: profile.id,
       office_id: role === "office" ? String(f.get("office") || "") || null : null };
-    if (row.role === "office" && !row.office_id) return toast("ضيف المكتب الأول من صفحة المكاتب", true);
+    if (row.role === "office" && !row.office_id) return toast("أضف المكتب أولًا من صفحة المكاتب", true);
     const { error } = await sb.from("invites").insert(row);
-    if (error) return toast(error.code === "23505" ? "البريد ده مدعو قبل كده" : "ماقدرناش نضيف الدعوة", true);
-    toast("اتضافت الدعوة"); form.reset(); setRole("owner"); reload();
+    if (error) return toast(error.code === "23505" ? "هذا البريد مدعو من قبل" : "تعذّرت إضافة الدعوة", true);
+    toast("تمت إضافة الدعوة"); form.reset(); setRole("owner"); reload();
   };
   return (
     <>
-      <Head eyebrow="الدعوات" title="مين يقدر يدخل المنصة"><p>الدعوة بتحدد دور الشخص. ابعتله رابط الموقع، ولما يدخل ببريده هياخد الدور ده تلقائياً.</p></Head>
+      <Head eyebrow="الدعوات" title="من يمكنه دخول المنصة"><p>تحدد الدعوة دور الشخص. أرسل إليه رابط الموقع، وعندما يدخل ببريده سيحصل على هذا الدور تلقائيًا.</p></Head>
       <section className="panel">
         <h2>دعوة جديدة</h2>
         <form className="form-row" onSubmit={add}>
@@ -196,14 +196,14 @@ export function Invites() {
         </form>
       </section>
       <section className="panel"><h2>كل الدعوات</h2><div className="table-wrap">
-        {error || data?.failed ? <p className="empty">ماقدرناش نحمّل الدعوات</p> : !data ? <Loading /> : data.list.length ? (
+        {error || data?.failed ? <p className="empty">تعذّر تحميل الدعوات</p> : !data ? <Loading /> : data.list.length ? (
           <table><thead><tr><th>البريد</th><th>الدور</th><th>المكتب</th><th>الحالة</th></tr></thead><tbody>
             {data.list.map((i: any) => (
               <tr key={i.email}><td className="ltr">{i.email}</td><td>{ROLES[i.role]}</td><td>{i.offices?.name || ""}</td>
-                <td>{i.accepted_at ? <span className="chip ok">دخل {fmtDate(i.accepted_at)}</span> : <span className="chip warn">مستني</span>}</td></tr>
+                <td>{i.accepted_at ? <span className="chip ok">دخل {fmtDate(i.accepted_at)}</span> : <span className="chip warn">معلّقة</span>}</td></tr>
             ))}
           </tbody></table>
-        ) : <p className="empty">مفيش دعوات لسه</p>}
+        ) : <p className="empty">لا توجد دعوات بعد</p>}
       </div></section>
     </>
   );
@@ -221,30 +221,30 @@ export function Offices() {
     const form = e.currentTarget, f = new FormData(form);
     const val = (k: string) => String(f.get(k) || "").trim() || null;
     const { error } = await sb.from("offices").insert({ name: val("name"), phone: val("phone"), license_no: val("license") });
-    if (error) return toast("ماقدرناش نضيف المكتب", true);
-    toast("اتضاف المكتب"); form.reset(); reload();
+    if (error) return toast("تعذّرت إضافة المكتب", true);
+    toast("تمت إضافة المكتب"); form.reset(); reload();
   };
   return (
     <>
-      <Head eyebrow="المكاتب" title="المكاتب المعتمدة"><p>ضيف المكتب، وحدد أسعاره ومدده لكل خدمة، وبعدها ابعت دعوة لموظفيه بدور مكتب.</p></Head>
+      <Head eyebrow="المكاتب" title="المكاتب المعتمدة"><p>أضف المكتب، وحدد أسعاره ومدده لكل خدمة، ثم أرسل دعوة لموظفيه بدور مكتب.</p></Head>
       <section className="panel">
         <h2>مكتب جديد</h2>
         <form className="form-row" onSubmit={add}>
           <div className="field"><label htmlFor="off-name">اسم المكتب</label><input id="off-name" name="name" required /></div>
-          <div className="field"><label htmlFor="off-phone">التليفون</label><input id="off-phone" name="phone" className="ltr" inputMode="tel" /></div>
+          <div className="field"><label htmlFor="off-phone">الهاتف</label><input id="off-phone" name="phone" className="ltr" inputMode="tel" /></div>
           <div className="field"><label htmlFor="off-lic">رقم الترخيص</label><input id="off-lic" name="license" className="ltr" /></div>
           <button className="btn primary" type="submit">أضف المكتب</button>
         </form>
       </section>
       <section className="panel"><h2>كل المكاتب</h2><div className="table-wrap">
-        {error ? <p className="empty">ماقدرناش نحمّل المكاتب</p> : !data ? <Loading /> : data.length ? (
-          <table><thead><tr><th>المكتب</th><th>التليفون</th><th>رقم الترخيص</th><th>خدمات مسعّرة</th><th></th></tr></thead><tbody>
+        {error ? <p className="empty">تعذّر تحميل المكاتب</p> : !data ? <Loading /> : data.length ? (
+          <table><thead><tr><th>المكتب</th><th>الهاتف</th><th>رقم الترخيص</th><th>خدمات مسعّرة</th><th></th></tr></thead><tbody>
             {data.map((o) => (
               <tr key={o.id}><td>{o.name}</td><td className="ltr">{o.phone || ""}</td><td className="ltr">{o.license_no || ""}</td>
                 <td>{num(o.office_services?.[0]?.count || 0)}</td><td><Link className="btn small" href={`/admin/offices/${o.id}/prices`}>الأسعار والمدد</Link></td></tr>
             ))}
           </tbody></table>
-        ) : <p className="empty">مفيش مكاتب لسه. ابدأ بالمكتب الشريك.</p>}
+        ) : <p className="empty">لا توجد مكاتب بعد. ابدأ بإضافة المكتب الشريك.</p>}
       </div></section>
     </>
   );
@@ -265,7 +265,7 @@ export function Prices({ officeId }: { officeId: string }) {
   if (error) return <LoadError />;
   if (!data) return <Loading />;
   const { office, svcs, cur } = data;
-  if (!office) return <section className="panel"><p>المكتب ده مش موجود.</p><Link className="btn" href="/admin/offices">رجوع للمكاتب</Link></section>;
+  if (!office) return <section className="panel"><p>هذا المكتب غير موجود.</p><Link className="btn" href="/admin/offices">العودة إلى المكاتب</Link></section>;
   const save = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
@@ -276,13 +276,13 @@ export function Prices({ officeId }: { officeId: string }) {
     }
     if (!upserts.length) return toast("اكتب سعر ومدة لخدمة واحدة على الأقل", true);
     const { error } = await sb.from("office_services").upsert(upserts);
-    if (error) return toast("ماقدرناش نحفظ الأسعار", true);
-    toast("اتحفظت الأسعار");
+    if (error) return toast("تعذّر حفظ الأسعار", true);
+    toast("تم حفظ الأسعار");
   };
   return (
     <>
       <Head back={["/admin/offices", "المكاتب"]} eyebrow="الأسعار والمدد" title={office.name}>
-        <p>اكتب أتعاب المكتب ومدته لكل خدمة بيقدمها. الخدمة اللي تسيبها فاضية مش هتظهر لصاحب العمل مع المكتب ده. الرسوم الحكومية بتتحسب لوحدها.</p>
+        <p>اكتب أتعاب المكتب ومدته لكل خدمة يقدمها. الخدمة التي تتركها فارغة لن تظهر لصاحب العمل مع هذا المكتب. وتُحسب الرسوم الحكومية تلقائيًا.</p>
       </Head>
       <form className="panel" onSubmit={save}>
         <div className="table-wrap"><table><thead><tr><th>الخدمة</th><th>الرسوم الحكومية</th><th>أتعاب المكتب بالجنيه</th><th>المدة بالأيام</th></tr></thead><tbody>
@@ -292,7 +292,7 @@ export function Prices({ officeId }: { officeId: string }) {
               <td><input className="mini" type="number" min="1" step="1" name={`days-${s.id}`} defaultValue={cur[s.id]?.days ?? ""} /></td></tr>
           ))}
         </tbody></table></div>
-        <button className="btn primary" type="submit">احفظ الأسعار</button>
+        <button className="btn primary" type="submit">حفظ الأسعار</button>
       </form>
     </>
   );
@@ -306,13 +306,13 @@ export function Users() {
   }, []);
   return (
     <>
-      <Head eyebrow="المستخدمين" title="اللي دخلوا المنصة" />
+      <Head eyebrow="المستخدمون" title="من دخلوا المنصة" />
       <section className="panel"><div className="table-wrap">
-        {error ? <p className="empty">ماقدرناش نحمّل المستخدمين</p> : !data ? <Loading /> : (
+        {error ? <p className="empty">تعذّر تحميل المستخدمين</p> : !data ? <Loading /> : (
           <table><thead><tr><th>البريد</th><th>الدور</th><th>المكتب</th><th>الموافقة على البيانات</th><th>أول دخول</th></tr></thead><tbody>
             {data.map((u) => (
-              <tr key={u.email}><td className="ltr">{u.email}</td><td>{u.role ? ROLES[u.role] : <span className="chip warn">مش مدعو</span>}</td>
-                <td>{u.offices?.name || ""}</td><td>{u.consent_at ? fmtDate(u.consent_at) : "لسه"}</td><td>{fmtDate(u.created_at)}</td></tr>
+              <tr key={u.email}><td className="ltr">{u.email}</td><td>{u.role ? ROLES[u.role] : <span className="chip warn">غير مدعو</span>}</td>
+                <td>{u.offices?.name || ""}</td><td>{u.consent_at ? fmtDate(u.consent_at) : "لم يوافق بعد"}</td><td>{fmtDate(u.created_at)}</td></tr>
             ))}
           </tbody></table>
         )}

@@ -18,7 +18,7 @@ export function Login() {
 
   const emailOf = () => {
     const v = email.trim();
-    if (!v) toast("اكتب بريدك الأول", true);
+    if (!v) toast("اكتب بريدك الإلكتروني أولًا", true);
     return v;
   };
   const login = async (e: React.FormEvent) => {
@@ -26,26 +26,26 @@ export function Login() {
     setBusy(true);
     const { error } = await sb.auth.signInWithPassword({ email: emailOf(), password: pass });
     setBusy(false);
-    if (error) toast(error.status === 400 ? "البريد أو كلمة السر غلط. لو أول مرة تدخل، اطلب رابط الدخول." : "ماقدرناش ندخلك، جرب تاني", true);
+    if (error) toast(error.status === 400 ? "البريد الإلكتروني أو كلمة المرور غير صحيحة. إذا كانت هذه أول مرة تدخل فيها، فاطلب رابط الدخول." : "تعذّر تسجيل الدخول، حاول مرة أخرى", true);
   };
   const first = async () => {
     const v = emailOf(); if (!v) return;
     const { error } = await sb.auth.signInWithOtp({ email: v, options: { emailRedirectTo: back() } });
-    if (error) return toast("ماقدرناش نبعت الرابط، جرب تاني بعد شوية", true);
-    setSent("بعتنالك رابط الدخول. بعد ما تدخل هتعمل كلمة سر، ومش هتحتاج الرابط تاني.");
+    if (error) return toast("تعذّر إرسال الرابط، حاول مرة أخرى بعد قليل", true);
+    setSent("أرسلنا إليك رابط الدخول. بعد الدخول ستنشئ كلمة مرور، ولن تحتاج إلى الرابط مرة أخرى.");
   };
   const forgot = async () => {
     const v = emailOf(); if (!v) return;
     const { error } = await sb.auth.resetPasswordForEmail(v, { redirectTo: back() });
-    if (error) return toast("ماقدرناش نبعت الرابط، جرب تاني بعد شوية", true);
-    setSent("بعتنالك رابط تعمل منه كلمة سر جديدة.");
+    if (error) return toast("تعذّر إرسال الرابط، حاول مرة أخرى بعد قليل", true);
+    setSent("أرسلنا إليك رابطًا لإنشاء كلمة مرور جديدة.");
   };
 
   if (sent) return (
     <section className="panel auth">
-      <h1 style={{ fontSize: 24 }}>افتح بريدك</h1><p>{sent}</p><p className="ltr"><b>{email.trim()}</b></p>
-      <p className="note">لو مالقيتهوش، بص في الرسائل غير المرغوب فيها.</p>
-      <button className="linkish" type="button" onClick={() => setSent(null)}>رجوع لتسجيل الدخول</button>
+      <h1 style={{ fontSize: 24 }}>تحقق من بريدك</h1><p>{sent}</p><p className="ltr"><b>{email.trim()}</b></p>
+      <p className="note">إذا لم تجده، فابحث في الرسائل غير المرغوب فيها.</p>
+      <button className="linkish" type="button" onClick={() => setSent(null)}>العودة إلى تسجيل الدخول</button>
     </section>
   );
 
@@ -54,34 +54,34 @@ export function Login() {
       <section className="landing-top">
         <div className="landing-t">
           <span className="eyebrow">ورقك أسهل</span>
-          <h1>كل ورق شركتك في مكان واحد، ومحدش هيفوّت ميعاد تاني</h1>
-          <p>ورقك بيفكرك قبل ما أي مستند ينتهي، ويوريك تعمل الخطوة بنفسك ولا مع مكتب، بكام وفي قد إيه. ولو اخترت مكتب، بتتابع شغله خطوة بخطوة.</p>
+          <h1>كل مستندات شركتك في مكان واحد، ولن يفوتك أي موعد</h1>
+          <p>يذكّرك ورقك قبل انتهاء أي مستند، ويوضح لك هل تنفذ الخطوة بنفسك أم مع مكتب، وبأي تكلفة وفي أي مدة. وإذا اخترت مكتبًا، تتابع عمله خطوة بخطوة.</p>
           <div className="perks">
             <span><Icon name="check" size={16} />تذكير قبل كل تجديد</span>
-            <span><Icon name="check" size={16} />أسعار ومدد المكاتب قدامك</span>
+            <span><Icon name="check" size={16} />أسعار المكاتب ومددها أمامك</span>
             <span><Icon name="check" size={16} />تقييم حقيقي لالتزام كل مكتب</span>
           </div>
         </div>
         <section className="panel auth">
-          <h2>ادخل حسابك</h2>
-          <p className="note">النسخة دي تجريبية، والدخول بدعوة بس.</p>
+          <h2>تسجيل الدخول</h2>
+          <p className="note">هذه نسخة تجريبية، والدخول بدعوة فقط.</p>
           <form className="stack" onSubmit={login}>
             <div className="field"><label htmlFor="email">البريد الإلكتروني</label><input id="email" type="email" className="ltr" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
-            <div className="field"><label htmlFor="pass">كلمة السر</label><input id="pass" type="password" className="ltr" required autoComplete="current-password" value={pass} onChange={(e) => setPass(e.target.value)} /></div>
-            <button className="btn primary" type="submit" disabled={busy}>ادخل</button>
+            <div className="field"><label htmlFor="pass">كلمة المرور</label><input id="pass" type="password" className="ltr" required autoComplete="current-password" value={pass} onChange={(e) => setPass(e.target.value)} /></div>
+            <button className="btn primary" type="submit" disabled={busy}>دخول</button>
           </form>
           <div className="auth-links">
-            <button className="linkish" type="button" onClick={first}>أول مرة تدخل؟ ابعتلي رابط دخول</button>
-            <button className="linkish" type="button" onClick={forgot}>نسيت كلمة السر</button>
+            <button className="linkish" type="button" onClick={first}>أول مرة؟ أرسل لي رابط الدخول</button>
+            <button className="linkish" type="button" onClick={forgot}>نسيت كلمة المرور</button>
           </div>
         </section>
       </section>
       <section className="landing-how">
-        <h2>ثلاث خطوات وتبقى مطمّن</h2>
+        <h2>ثلاث خطوات لتطمئن على شركتك</h2>
         <div className="how">
-          <div><span className="tile-ic"><Icon name="doc" size={24} /></span><b>ضيف شركتك ومستنداتها</b><p>السجل والبطاقة الضريبية والتراخيص، وتاريخ انتهاء كل واحد.</p></div>
-          <div><span className="tile-ic warn"><Icon name="bell" size={24} /></span><b>استنى التذكير</b><p>بنفكرك في الوقت اللي لازم تبدأ فيه، مش يوم الانتهاء.</p></div>
-          <div><span className="tile-ic ok"><Icon name="pulse" size={24} /></span><b>اختار وتابع</b><p>اعملها بنفسك أو اختار مكتب، وتابع كل مرحلة لحد ما تخلص.</p></div>
+          <div><span className="tile-ic"><Icon name="doc" size={24} /></span><b>أضف شركتك ومستنداتها</b><p>السجل التجاري والبطاقة الضريبية والتراخيص، وتاريخ انتهاء كل منها.</p></div>
+          <div><span className="tile-ic warn"><Icon name="bell" size={24} /></span><b>انتظر التذكير</b><p>نذكّرك في الوقت الذي يجب أن تبدأ فيه، لا في يوم الانتهاء.</p></div>
+          <div><span className="tile-ic ok"><Icon name="pulse" size={24} /></span><b>اختر وتابع</b><p>نفّذها بنفسك أو اختر مكتبًا، وتابع كل مرحلة حتى تكتمل.</p></div>
         </div>
       </section>
     </div>
@@ -96,26 +96,26 @@ export function SetPassword({ onDone }: { onDone: () => void }) {
   const [busy, setBusy] = useState(false);
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (p1 !== p2) return toast("كلمتين السر مش زي بعض", true);
+    if (p1 !== p2) return toast("كلمتا المرور غير متطابقتين", true);
     setBusy(true);
     const { error } = await sb.auth.updateUser({ password: p1, data: { has_password: true } });
     setBusy(false);
-    if (error) return toast(error.code === "weak_password" ? "كلمة السر ضعيفة، جرب واحدة أطول" : error.code === "same_password" ? "دي نفس كلمة السر القديمة" : "ماقدرناش نحفظ كلمة السر", true);
+    if (error) return toast(error.code === "weak_password" ? "كلمة المرور ضعيفة، اختر كلمة أطول" : error.code === "same_password" ? "هذه هي كلمة المرور القديمة نفسها" : "تعذّر حفظ كلمة المرور", true);
     passwordSaved();
-    toast("اتحفظت كلمة السر");
+    toast("تم حفظ كلمة المرور");
   };
   return (
     <section className="panel auth">
-      <span className="eyebrow">{fresh ? "خطوة واحدة" : "كلمة سر جديدة"}</span>
-      <h1 style={{ fontSize: 24 }}>{fresh ? "اعمل كلمة سر" : "اكتب كلمة السر الجديدة"}</h1>
-      <p className="note">{fresh ? "بعد كده هتدخل بيها على طول، من غير ما تستنى إيميل." : "هتستخدمها في الدخول من النهارده."}</p>
+      <span className="eyebrow">{fresh ? "خطوة واحدة" : "كلمة مرور جديدة"}</span>
+      <h1 style={{ fontSize: 24 }}>{fresh ? "أنشئ كلمة مرور" : "اكتب كلمة المرور الجديدة"}</h1>
+      <p className="note">{fresh ? "بعدها ستدخل بها مباشرة، دون انتظار رسالة على بريدك." : "ستستخدمها في الدخول من الآن."}</p>
       <form className="stack" onSubmit={save}>
-        <div className="field"><label htmlFor="p1">كلمة السر</label><input id="p1" type="password" className="ltr" minLength={8} required autoComplete="new-password" value={p1} onChange={(e) => setP1(e.target.value)} /></div>
-        <div className="field"><label htmlFor="p2">اكتبها تاني</label><input id="p2" type="password" className="ltr" minLength={8} required autoComplete="new-password" value={p2} onChange={(e) => setP2(e.target.value)} /></div>
+        <div className="field"><label htmlFor="p1">كلمة المرور</label><input id="p1" type="password" className="ltr" minLength={8} required autoComplete="new-password" value={p1} onChange={(e) => setP1(e.target.value)} /></div>
+        <div className="field"><label htmlFor="p2">أعد كتابتها</label><input id="p2" type="password" className="ltr" minLength={8} required autoComplete="new-password" value={p2} onChange={(e) => setP2(e.target.value)} /></div>
         <p className="note">٨ حروف أو أرقام على الأقل.</p>
-        <button className="btn primary" type="submit" disabled={busy}>احفظ</button>
+        <button className="btn primary" type="submit" disabled={busy}>حفظ</button>
       </form>
-      {fresh && <button className="linkish" type="button" onClick={() => { writeSession("rasmy-skip-password", "1"); onDone(); }}>مش دلوقتي</button>}
+      {fresh && <button className="linkish" type="button" onClick={() => { writeSession("rasmy-skip-password", "1"); onDone(); }}>ليس الآن</button>}
     </section>
   );
 }
@@ -124,8 +124,8 @@ export function NotInvited() {
   const { profile } = useSession();
   return (
     <section className="panel auth">
-      <h1 style={{ fontSize: 24 }}>الحساب ده مش مدعو لسه</h1>
-      <p>النسخة التجريبية بالدعوة بس. اطلب من مدير المنصة يبعتلك دعوة على البريد ده:</p>
+      <h1 style={{ fontSize: 24 }}>هذا الحساب غير مدعو بعد</h1>
+      <p>النسخة التجريبية متاحة بالدعوة فقط. اطلب من مدير المنصة إرسال دعوة إلى هذا البريد:</p>
       <p className="ltr"><b>{profile.email}</b></p>
     </section>
   );
@@ -137,17 +137,17 @@ export function Consent() {
   const go = async () => {
     const now = new Date().toISOString();
     const { error } = await sb.from("profiles").update({ consent_at: now }).eq("id", profile.id);
-    if (error) return toast("ماقدرناش نحفظ موافقتك، جرب تاني", true);
+    if (error) return toast("تعذّر حفظ موافقتك، حاول مرة أخرى", true);
     setProfile({ ...profile, consent_at: now });
   };
   return (
     <section className="panel auth">
-      <span className="eyebrow">قبل ما تبدأ</span>
+      <span className="eyebrow">قبل أن تبدأ</span>
       <h1 style={{ fontSize: 24 }}>بياناتك وطريقة استخدامها</h1>
-      <p>المنصة هتحفظ بيانات شركاتك ومستنداتها وطلباتك، عشان نعرضلك خطواتك ونفكرك بالتجديدات.</p>
-      <p>المكتب اللي بتختاره يشوف بيانات الطلب اللي معاه بس، ومحدش تاني يشوفها.</p>
-      <p>تقدر تطلب مسح بياناتك في أي وقت.</p>
-      <label className="check"><input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} /> موافق على حفظ بياناتي واستخدامها بالطريقة دي</label>
+      <p>ستحفظ المنصة بيانات شركاتك ومستنداتها وطلباتك، لنعرض لك خطواتك ونذكّرك بمواعيد التجديد.</p>
+      <p>لا يرى المكتب الذي تختاره إلا بيانات الطلب المسند إليه، ولا يطّلع عليها أحد غيره.</p>
+      <p>يمكنك طلب حذف بياناتك في أي وقت.</p>
+      <label className="check"><input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} /> أوافق على حفظ بياناتي واستخدامها بهذه الطريقة</label>
       <button className="btn primary" type="button" disabled={!agree} onClick={go}>ابدأ</button>
     </section>
   );

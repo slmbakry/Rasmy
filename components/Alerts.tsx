@@ -25,7 +25,7 @@ export default function Alerts() {
   }, [data]);
   return (
     <>
-      <Head eyebrow="التنبيهات" title="اللي محتاج تعرفه"><p>التنبيهات بتوصل لما حاجة تتغير في طلباتك، أو مرحلة تتأخر، أو مستند يقرب ينتهي.</p></Head>
+      <Head eyebrow="التنبيهات" title="ما تحتاج إلى معرفته"><p>تصلك التنبيهات عند حدوث تغيير في طلباتك، أو تأخر إحدى المراحل، أو اقتراب انتهاء أحد المستندات.</p></Head>
       <section className="panel">
         {error ? <LoadError /> : !data ? <Loading /> : data.length ? (
           <div className="alerts">{data.map((n) => (
@@ -33,7 +33,7 @@ export default function Alerts() {
               <span className="dot" aria-hidden="true" /><div><b>{n.title}</b>{n.body && <small>{n.body}</small>}</div><small className="when">{fmtDate(n.created_at)}</small>
             </Link>
           ))}</div>
-        ) : <p className="empty">مفيش تنبيهات لسه.</p>}
+        ) : <p className="empty">لا توجد تنبيهات بعد.</p>}
       </section>
     </>
   );

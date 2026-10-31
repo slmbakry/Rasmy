@@ -9,7 +9,7 @@ const site = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_PROJECT_PRO
 export const metadata: Metadata = {
   metadataBase: new URL(site),
   title: "ورقك",
-  description: "ورقك أسهل. كل ورق شركتك في مكان واحد، ومحدش هيفوّت ميعاد تاني.",
+  description: "ورقك أسهل. كل مستندات شركتك في مكان واحد، ولن يفوتك أي موعد.",
   robots: { index: false, follow: false },
   manifest: "/site.webmanifest",
   icons: {
