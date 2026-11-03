@@ -34,14 +34,15 @@ export function Obligations() {
   const { toast } = useSession();
   const { data, error, reload } = useLoad(async () => {
     if (!current) return null;
-    const [svcs, { data: docs }, { data: reqs }, { data: rules }, { data: done }] = await Promise.all([
+    const [svcs, { data: docs }, { data: reqs }, { data: rules }, { data: done }, { data: mutes }] = await Promise.all([
       services(),
       sb.from("documents").select("*").eq("company_id", current.id),
       sb.from("requests").select("id,service_id,status,document_id,quoted_days,accepted_at,created_at,offices(name)").eq("company_id", current.id).not("status", "in", "(done,cancelled)"),
       sb.from("obligation_rules").select("*").eq("active", true).order("sort"),
       sb.from("obligation_done").select("rule_id,period").eq("company_id", current.id),
+      sb.from("obligation_mutes").select("rule_id").eq("company_id", current.id),
     ]);
-    return { svcs, docs: docs || [], reqs: reqs || [], rules: (rules || []) as Rule[], done: new Set((done || []).map((d) => `${d.rule_id}|${d.period}`)) };
+    return { svcs, docs: docs || [], reqs: reqs || [], rules: (rules || []) as Rule[], done: new Set((done || []).map((d) => `${d.rule_id}|${d.period}`)), muted: new Set((mutes || []).map((m) => m.rule_id as string)) };
   }, [current?.id, current?.vat_registered, current?.has_employees, current?.simplified_tax, current?.fiscal_year_end, current?.legal_form]);
 
   const head = (
@@ -80,6 +81,19 @@ export function Obligations() {
   }));
   obs.sort((a, b) => a.date.getTime() - b.date.getTime());
 
+  const setReminders = async (on: boolean) => {
+    const { error } = await sb.from("companies").update({ reminders_on: on }).eq("id", current.id);
+    if (error) return toast("تعذّر الحفظ", true);
+    toast(on ? "تم تفعيل التذكير" : "تم إيقاف التذكير"); reloadCompanies();
+  };
+  const toggleMute = async (ruleId: string) => {
+    const muted = data.muted.has(ruleId);
+    const { error } = muted
+      ? await sb.from("obligation_mutes").delete().eq("company_id", current.id).eq("rule_id", ruleId)
+      : await sb.from("obligation_mutes").insert({ company_id: current.id, rule_id: ruleId });
+    if (error) return toast("تعذّر الحفظ", true);
+    toast(muted ? "تم تفعيل التذكير بهذا الالتزام" : "لن يصلك تذكير بهذا الالتزام"); reload();
+  };
   const markDone = async (o: Occurrence) => {
     const { error } = await sb.from("obligation_done").insert({ company_id: current.id, rule_id: o.rule.id, period: o.period });
     if (error) return toast("تعذّر الحفظ", true);
@@ -97,6 +111,13 @@ export function Obligations() {
     <>
       {head}
       {(ask.vat || ask.employees) && <ProfileQuestions company={current} onSaved={reloadCompanies} />}
+      <div className={"reminder-bar" + (current.reminders_on ? "" : " off")}>
+        <Icon name="bell" size={18} />
+        <span className="grow">{current.reminders_on
+          ? "يصلك تنبيه قبل كل موعد بأسبوع، ومرة أخرى إذا فات الموعد ولم تعلّمه كمكتمل."
+          : "التذكير بمواعيد الالتزامات متوقف لهذه الشركة."}</span>
+        <button className="linkish" type="button" onClick={() => setReminders(!current.reminders_on)}>{current.reminders_on ? "إيقاف التذكير" : "تفعيل التذكير"}</button>
+      </div>
       {obs.length ? groups.filter(([, g]) => g.length).map(([label, g]) => (
         <section key={label} className="panel"><h2>{label}</h2>
           <div className="ob-group">{g.map((o, i) => (
@@ -110,6 +131,8 @@ export function Obligations() {
                     {o.occ.rule.certainty === "estimated" && <p className="note">الموعد تقديري، لأن المصادر المتاحة لا تحدده بدقة. راجعه مع مقدم الخدمة.</p>}
                     {o.occ.rule.source_url && <a href={o.occ.rule.source_url} target="_blank" rel="noopener noreferrer">{o.occ.rule.source_title || "المصدر"}</a>}
                     <small className="note">آخر مراجعة {fmtDate(o.occ.rule.checked_on)}</small>
+                    {current.reminders_on && <button className="linkish" type="button" onClick={() => toggleMute(o.occ.rule.id)}>
+                      {data.muted.has(o.occ.rule.id) ? "تفعيل التذكير بهذا الالتزام" : "إيقاف التذكير بهذا الالتزام"}</button>}
                   </details>
                 )}
               </span>

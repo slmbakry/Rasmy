@@ -453,3 +453,6 @@ label.btn.disabled { opacity: .5; pointer-events: none; }
 .panel.unsure { border-color: #E9C46A; background: var(--warn-soft); }
 .panel.unsure ul, .sources { margin: 0; padding-inline-start: 18px; display: grid; gap: 6px; }
 .sources a { color: var(--accent-ink); }
+.reminder-bar { display: flex; gap: 10px; align-items: center; padding: 10px 14px; border-radius: 12px; background: var(--accent-soft); color: var(--accent-ink); font-size: 14px; }
+.reminder-bar.off { background: var(--sunken); color: var(--ink-2); }
+.ob-why .linkish { font-size: 13px; margin-top: 4px; }

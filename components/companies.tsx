@@ -7,7 +7,7 @@ import { useSession } from "./session";
 
 export type Company = { id: string; name: string; legal_form: string | null; status: string; is_demo: boolean; plan: string;
   governorate: string | null; registry_office: string | null; tax_office: string | null; created_at: string;
-  vat_registered: boolean | null; has_employees: boolean | null; simplified_tax: boolean | null; fiscal_year_end: number };
+  vat_registered: boolean | null; has_employees: boolean | null; simplified_tax: boolean | null; fiscal_year_end: number; reminders_on: boolean };
 
 type Companies = { list: Company[] | null; current: Company | null; pick: (id: string) => void; reload: () => void };
 const Ctx = createContext<Companies>({ list: null, current: null, pick: () => {}, reload: () => {} });
