@@ -5,8 +5,9 @@ import Link from "next/link";
 import { sb } from "@/lib/supabase";
 import { DAY, days, fmtDate, money, today } from "@/lib/format";
 import { STATUS, docStatus, services, sortStages, stageLate } from "@/lib/data";
-import { CompanySwitch, useCompanies } from "../companies";
-import { useLoad } from "../session";
+import { CompanySwitch, useCompanies, type Company } from "../companies";
+import { applies, missingAnswers, occurrences, type Occurrence, type Rule } from "@/lib/obligations";
+import { useLoad, useSession } from "../session";
 import { Head, Icon, LoadError, Loading } from "../ui";
 import Files from "./Files";
 
@@ -23,22 +24,26 @@ function NoCompany({ what }: { what: string }) {
 }
 
 // ---------- Obligations ----------
-// Everything the company owes, by date: renewals now, recurring filings later.
+// Everything the company owes, by date: document renewals, open requests,
+// and the recurring filings that apply to it, each with its source.
 export function Obligations() {
-  const { list, current } = useCompanies();
-  const { data, error } = useLoad(async () => {
+  const { list, current, reload: reloadCompanies } = useCompanies();
+  const { toast } = useSession();
+  const { data, error, reload } = useLoad(async () => {
     if (!current) return null;
-    const [svcs, { data: docs }, { data: reqs }] = await Promise.all([
+    const [svcs, { data: docs }, { data: reqs }, { data: rules }, { data: done }] = await Promise.all([
       services(),
       sb.from("documents").select("*").eq("company_id", current.id),
       sb.from("requests").select("id,service_id,status,document_id,quoted_days,accepted_at,created_at,offices(name)").eq("company_id", current.id).not("status", "in", "(done,cancelled)"),
+      sb.from("obligation_rules").select("*").eq("active", true).order("sort"),
+      sb.from("obligation_done").select("rule_id,period").eq("company_id", current.id),
     ]);
-    return { svcs, docs: docs || [], reqs: reqs || [] };
-  }, [current?.id]);
+    return { svcs, docs: docs || [], reqs: reqs || [], rules: (rules || []) as Rule[], done: new Set((done || []).map((d) => `${d.rule_id}|${d.period}`)) };
+  }, [current?.id, current?.vat_registered, current?.has_employees, current?.simplified_tax, current?.fiscal_year_end, current?.legal_form]);
 
   const head = (
     <Head eyebrow={<>الالتزامات <CompanySwitch /></>} title="ما الذي على شركتك ومتى">
-      <p>كل التزامات الشركة في مكان واحد ومرتبة حسب الموعد، ومعها تذكير قبل كل موعد بوقت كافٍ.</p>
+      <p>كل التزامات الشركة في مكان واحد ومرتبة حسب الموعد: التجديدات، والإقرارات الضريبية، والتأمينات، والاجتماع السنوي.</p>
     </Head>
   );
   if (!list) return <>{head}<Loading /></>;
@@ -46,8 +51,9 @@ export function Obligations() {
   if (error) return <>{head}<LoadError /></>;
   if (!data) return <>{head}<Loading /></>;
 
-  type Ob = { date: Date; title: string; sub: string; tone: string; href: string | null; cta: string };
+  type Ob = { date: Date; title: string; sub: string; tone: string; href: string | null; cta: string; occ?: Occurrence };
   const obs: Ob[] = [];
+  const t = today().getTime();
   data.docs.forEach((d) => {
     if (!d.expires_on) return;
     const svc = data.svcs[d.service_id], st = docStatus(d, svc);
@@ -61,26 +67,52 @@ export function Obligations() {
     if (r.document_id) return;
     const due = new Date(new Date(r.accepted_at || r.created_at).getTime() + (r.quoted_days || 0) * DAY);
     obs.push({ date: due, title: data.svcs[r.service_id]?.title || r.service_id, sub: "الموعد المتوقع لانتهاء الطلب",
-      tone: due < today() ? "bad" : "", href: `/requests/${r.id}`, cta: "متابعة" });
+      tone: due.getTime() < t ? "bad" : "", href: `/requests/${r.id}`, cta: "متابعة" });
   });
+  let doneCount = 0;
+  data.rules.filter((r) => applies(r, current)).forEach((rule) => occurrences(rule, current).forEach((o) => {
+    if (data.done.has(`${rule.id}|${o.period}`)) { doneCount++; return; }
+    const left = (o.due.getTime() - t) / DAY;
+    obs.push({ date: o.due, title: rule.title, sub: `${o.label} · ${rule.agency}`, tone: left < 0 ? "bad" : left <= 7 ? "warn" : "", href: null, cta: "", occ: o });
+  }));
   obs.sort((a, b) => a.date.getTime() - b.date.getTime());
-  const t = today().getTime();
+
+  const markDone = async (o: Occurrence) => {
+    const { error } = await sb.from("obligation_done").insert({ company_id: current.id, rule_id: o.rule.id, period: o.period });
+    if (error) return toast("تعذّر الحفظ", true);
+    toast("تم تسجيله كمكتمل"); reload();
+  };
   const groups: [string, Ob[]][] = [
     ["متأخر", obs.filter((o) => o.date.getTime() < t)],
     ["خلال ٣٠ يومًا", obs.filter((o) => o.date.getTime() >= t && o.date.getTime() < t + 30 * DAY)],
     ["خلال ٣ أشهر", obs.filter((o) => o.date.getTime() >= t + 30 * DAY && o.date.getTime() < t + 90 * DAY)],
-    ["لاحقًا", obs.filter((o) => o.date.getTime() >= t + 90 * DAY)],
+    // Further out, only the next time each recurring obligation falls due.
+    ["لاحقًا", obs.filter((o) => o.date.getTime() >= t + 90 * DAY).filter((o, i, all) => !o.occ || all.findIndex((x) => x.occ?.rule.id === o.occ.rule.id) === i)],
   ];
+  const ask = missingAnswers(current);
   return (
     <>
       {head}
+      {(ask.vat || ask.employees) && <ProfileQuestions company={current} onSaved={reloadCompanies} />}
       {obs.length ? groups.filter(([, g]) => g.length).map(([label, g]) => (
         <section key={label} className="panel"><h2>{label}</h2>
           <div className="ob-group">{g.map((o, i) => (
             <div key={i} className={`ob-row ${o.tone}`}>
               <span className="ob-date">{o.date.getDate()}<small>{o.date.toLocaleDateString("ar-EG", { month: "short", year: "numeric" })}</small></span>
-              <span className="grow"><b>{o.title}</b><small className="note">{o.sub}</small></span>
+              <span className="grow">
+                <b>{o.title}</b><small className="note">{o.sub}</small>
+                {o.occ && (
+                  <details className="ob-why"><summary>لماذا وما المصدر؟</summary>
+                    <p>{o.occ.rule.why}</p>
+                    {o.occ.rule.certainty === "estimated" && <p className="note">الموعد تقديري، لأن المصادر المتاحة لا تحدده بدقة. راجعه مع مقدم الخدمة.</p>}
+                    {o.occ.rule.source_url && <a href={o.occ.rule.source_url} target="_blank" rel="noopener noreferrer">{o.occ.rule.source_title || "المصدر"}</a>}
+                    <small className="note">آخر مراجعة {fmtDate(o.occ.rule.checked_on)}</small>
+                  </details>
+                )}
+              </span>
+              {o.occ?.rule.certainty === "estimated" && <span className="chip warn">تقديري</span>}
               {o.href && <Link className="btn small" href={o.href}>{o.cta}</Link>}
+              {o.occ && <button className="btn small" type="button" onClick={() => markDone(o.occ)}>تم</button>}
             </div>
           ))}</div>
         </section>
@@ -88,12 +120,45 @@ export function Obligations() {
         <section className="panel"><p className="empty">لا توجد التزامات مسجلة بعد. أضف مستندات الشركة وتواريخ انتهائها لتظهر هنا.</p>
           <Link className="btn" href={`/companies/${current.id}/documents/new`}>إضافة مستند</Link></section>
       )}
-      <section className="panel">
-        <span className="tile-ic"><Icon name="clock" /></span>
-        <h2>الإقرارات والاشتراكات الدورية</h2>
-        <p className="note">قريبًا ستظهر هنا مواعيد الإقرارات الضريبية واشتراكات التأمينات والجمعية العامة السنوية، محسوبة لشركتك حسب نشاطها وتسجيلها وعدد موظفيها.</p>
-      </section>
+      {doneCount > 0 && <p className="note">أنجزت {doneCount === 1 ? "التزامًا واحدًا" : `${doneCount} من الالتزامات`} في هذه الفترة.</p>}
+      <p className="note">المواعيد محسوبة من القوانين والقرارات المنشورة، وبجانب كل التزام مصدره. وقد تتغير المواعيد بقرارات جديدة، فنراجعها باستمرار.</p>
     </>
+  );
+}
+
+// The answers that decide which recurring obligations apply, asked once and in place.
+function ProfileQuestions({ company, onSaved }: { company: Company; onSaved: () => void }) {
+  const { toast } = useSession();
+  const save = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    const yes = (k: string) => (f.get(k) === "yes" ? true : f.get(k) === "no" ? false : null);
+    const { error } = await sb.from("companies").update({ vat_registered: yes("vat"), has_employees: yes("emp"), simplified_tax: yes("simple"),
+      fiscal_year_end: Number(f.get("fy")) || 12 }).eq("id", company.id);
+    if (error) return toast("تعذّر حفظ الإجابات", true);
+    toast("تم الحفظ، وظهرت التزامات شركتك"); onSaved();
+  };
+  const yn = (name: string, label: string, val: boolean | null, help: string) => (
+    <div className="field"><label>{label}</label>
+      <div className="seg-choice">
+        <label><input type="radio" name={name} value="yes" defaultChecked={val === true} /> نعم</label>
+        <label><input type="radio" name={name} value="no" defaultChecked={val === false} /> لا</label>
+      </div><small className="note">{help}</small></div>
+  );
+  return (
+    <section className="panel navy-soft">
+      <h2>أجب عن أسئلة قليلة لنحسب التزامات شركتك</h2>
+      <form className="stack" onSubmit={save}>
+        {yn("vat", "هل الشركة مسجلة في ضريبة القيمة المضافة؟", company.vat_registered, "التسجيل إلزامي إذا بلغت المبيعات ٥٠٠ ألف جنيه في السنة.")}
+        {yn("emp", "هل لدى الشركة موظفون مؤمَّن عليهم؟", company.has_employees, "يحدد ذلك التزامات التأمينات وضريبة المرتبات.")}
+        {yn("simple", "هل الشركة منضمة إلى النظام الضريبي المبسط؟", company.simplified_tax, "النظام المبسط للمشروعات حتى ٢٠ مليون جنيه في السنة، ويغيّر مواعيد بعض الإقرارات.")}
+        <div className="field"><label htmlFor="fy">نهاية السنة المالية</label>
+          <select id="fy" name="fy" defaultValue={company.fiscal_year_end || 12}>
+            {["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"].map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+          </select><small className="note">في أغلب الشركات تنتهي السنة المالية في ديسمبر.</small></div>
+        <button className="btn primary" type="submit">احفظ واحسب الالتزامات</button>
+      </form>
+    </section>
   );
 }
 

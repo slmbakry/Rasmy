@@ -443,3 +443,10 @@ label.btn.disabled { opacity: .5; pointer-events: none; }
 .ob-row.warn { border-color: #E9C46A; background: var(--warn-soft); }
 .ob-date { min-width: 64px; text-align: center; font-weight: 700; display: grid; line-height: 1.2; }
 .ob-date small { font-weight: 500; color: var(--muted); font-size: 12px; }
+.ob-why { margin-top: 4px; font-size: 13.5px; }
+.ob-why summary { cursor: pointer; color: var(--accent-ink); font-weight: 600; }
+.ob-why p { margin: 6px 0; }
+.ob-why a { color: var(--accent-ink); }
+.seg-choice { display: flex; gap: 16px; }
+.seg-choice label { display: flex; gap: 6px; align-items: center; font-weight: 500; }
+.panel.navy-soft { border-color: var(--accent); background: var(--accent-soft); }

@@ -146,7 +146,7 @@ export function CompanyEdit({ companyId }: { companyId: string }) {
   const { toast } = useSession();
   const [busy, setBusy] = useState(false);
   const { data: co, error } = useLoad(async () => {
-    const { data } = await sb.from("companies").select("id,name,legal_form,governorate,registry_office,tax_office").eq("id", companyId).maybeSingle();
+    const { data } = await sb.from("companies").select("id,name,legal_form,governorate,registry_office,tax_office,vat_registered,has_employees,simplified_tax,fiscal_year_end").eq("id", companyId).maybeSingle();
     return data;
   }, [companyId]);
   if (error) return <LoadError />;
@@ -156,7 +156,8 @@ export function CompanyEdit({ companyId }: { companyId: string }) {
     ev.preventDefault();
     const f = new FormData(ev.currentTarget);
     setBusy(true);
-    const { error } = await sb.from("companies").update({ name: String(f.get("name")).trim(), legal_form: f.get("form"), ...placesFrom(f) }).eq("id", companyId);
+    const { error } = await sb.from("companies").update({ name: String(f.get("name")).trim(), legal_form: f.get("form"), ...placesFrom(f),
+      vat_registered: tri(f.get("vat")), has_employees: tri(f.get("emp")), simplified_tax: tri(f.get("simple")), fiscal_year_end: Number(f.get("fy")) || 12 }).eq("id", companyId);
     setBusy(false);
     if (error) return toast("تعذّر حفظ بيانات الشركة", true);
     toast("تم حفظ بيانات الشركة"); router.push("/companies/" + companyId);
@@ -171,8 +172,28 @@ export function CompanyEdit({ companyId }: { companyId: string }) {
           <div className="field"><label htmlFor="c-form">الشكل القانوني</label><select id="c-form" name="form" defaultValue={co.legal_form || FORMS[0]}>{forms.map((x) => <option key={x}>{x}</option>)}</select></div>
         </div>
         <PlaceFields values={co} />
+        <h3 className="sub">الضرائب والموظفون</h3>
+        <div className="form-row two">
+          {triSelect("vat", "مسجلة في ضريبة القيمة المضافة", co.vat_registered)}
+          {triSelect("emp", "لديها موظفون مؤمَّن عليهم", co.has_employees)}
+          {triSelect("simple", "منضمة إلى النظام الضريبي المبسط", co.simplified_tax)}
+          <div className="field"><label htmlFor="fy">نهاية السنة المالية</label>
+            <select id="fy" name="fy" defaultValue={co.fiscal_year_end || 12}>{MONTH_NAMES.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}</select></div>
+        </div>
+        <small className="note">هذه الإجابات تحدد الإقرارات والاشتراكات التي تظهر في صفحة الالتزامات.</small>
         <button className="btn primary" type="submit" disabled={busy}>حفظ</button>
       </form>
     </>
+  );
+}
+
+const MONTH_NAMES = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
+const tri = (v: FormDataEntryValue | null) => (v === "yes" ? true : v === "no" ? false : null);
+function triSelect(name: string, label: string, value: boolean | null) {
+  return (
+    <div className="field"><label htmlFor={`t-${name}`}>{label}</label>
+      <select id={`t-${name}`} name={name} defaultValue={value === true ? "yes" : value === false ? "no" : ""}>
+        <option value="">لم يُحدَّد</option><option value="yes">نعم</option><option value="no">لا</option>
+      </select></div>
   );
 }
