@@ -6,7 +6,9 @@ import { sb } from "@/lib/supabase";
 import { DAY, days, fmtDate, money, today } from "@/lib/format";
 import { STATUS, docStatus, services, sortStages, stageLate } from "@/lib/data";
 import { CompanySwitch, useCompanies, type Company } from "../companies";
-import { applies, missingAnswers, occurrences, type Occurrence, type Rule } from "@/lib/obligations";
+import { applies, missingAnswers, occurrences, type Occurrence, type Profile, type Rule } from "@/lib/obligations";
+import { useState } from "react";
+import ObligationsPreview from "../ObligationsPreview";
 import { useLoad, useSession } from "../session";
 import { Head, Icon, LoadError, Loading } from "../ui";
 import Files from "./Files";
@@ -47,7 +49,7 @@ export function Obligations() {
     </Head>
   );
   if (!list) return <>{head}<Loading /></>;
-  if (!current) return <>{head}<NoCompany what="التزامات الشركة" /></>;
+  if (!current) return <>{head}<PlannedObligations /></>;
   if (error) return <>{head}<LoadError /></>;
   if (!data) return <>{head}<Loading /></>;
 
@@ -122,6 +124,37 @@ export function Obligations() {
       )}
       {doneCount > 0 && <p className="note">أنجزت {doneCount === 1 ? "التزامًا واحدًا" : `${doneCount} من الالتزامات`} في هذه الفترة.</p>}
       <p className="note">المواعيد محسوبة من القوانين والقرارات المنشورة، وبجانب كل التزام مصدره. وقد تتغير المواعيد بقرارات جديدة، فنراجعها باستمرار.</p>
+    </>
+  );
+}
+
+// Before there is a company: the obligations a planned project will have.
+function PlannedObligations() {
+  const [p, setP] = useState<Profile>({ legal_form: "شركة الشخص الواحد", vat_registered: false, has_employees: false, simplified_tax: true, fiscal_year_end: 12 });
+  const yn = (key: keyof Profile, label: string) => (
+    <div className="field"><label>{label}</label>
+      <div className="seg-choice">
+        <label><input type="radio" checked={p[key] === true} onChange={() => setP({ ...p, [key]: true })} /> نعم</label>
+        <label><input type="radio" checked={p[key] === false} onChange={() => setP({ ...p, [key]: false })} /> لا</label>
+      </div></div>
+  );
+  return (
+    <>
+      <section className="panel navy-soft">
+        <h2>لم تؤسس مشروعك بعد؟ اعرف التزاماته من الآن</h2>
+        <p className="note">أجب عن مشروعك كما تتوقعه، وسنعرض لك الالتزامات الدورية التي ستكون عليه بعد التأسيس.</p>
+        <div className="form-row two">
+          <div className="field"><label htmlFor="pl-form">الكيان المتوقع</label>
+            <select id="pl-form" value={p.legal_form} onChange={(e) => setP({ ...p, legal_form: e.target.value })}>
+              {["منشأة فردية", "شركة الشخص الواحد", "شركة ذات مسئولية محدودة", "شركة مساهمة"].map((x) => <option key={x}>{x}</option>)}
+            </select><small className="note">لا تعرف؟ <Link href="/guide">الدليل يساعدك تختار</Link>.</small></div>
+          {yn("vat_registered", "هل تتوقع مبيعات ٥٠٠ ألف جنيه أو أكثر في السنة؟")}
+          {yn("has_employees", "هل ستوظف عاملين؟")}
+          {yn("simplified_tax", "هل المبيعات المتوقعة أقل من ٢٠ مليون جنيه في السنة؟")}
+        </div>
+      </section>
+      <section className="panel"><ObligationsPreview profile={p} title="الالتزامات المتوقعة لمشروعك" /></section>
+      <NoCompany what="مواعيد الالتزامات الفعلية والتذكير بها" />
     </>
   );
 }

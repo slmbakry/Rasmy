@@ -8,6 +8,7 @@ import { optionsFor, services, type Option } from "@/lib/data";
 import { useLoad, useSession } from "../session";
 import { Head, Icon, Kpi, LoadError, Loading, OptionCards } from "../ui";
 import Requirements from "../Requirements";
+import ObligationsPreview from "../ObligationsPreview";
 
 const QUESTIONS = [
   { key: "partners", q: "هل ستبدأ وحدك أم مع شركاء؟", opts: [["alone", "وحدي", "المشروع ملكي بالكامل"], ["many", "معي شريك أو أكثر", "اثنان أو أكثر في الملكية"]] },
@@ -145,6 +146,10 @@ export function Plan() {
               </div>
             );
           })}
+          <section className="panel">
+            <ObligationsPreview profile={{ legal_form: e.name, vat_registered: a.turnover !== "s", has_employees: a.staff === "yes",
+              simplified_tax: a.turnover !== "l", fiscal_year_end: 12 }} />
+          </section>
         </div>
         <aside className="split-side">
           <section className="panel sum">
