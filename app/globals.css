@@ -456,3 +456,6 @@ label.btn.disabled { opacity: .5; pointer-events: none; }
 .reminder-bar { display: flex; gap: 10px; align-items: center; padding: 10px 14px; border-radius: 12px; background: var(--accent-soft); color: var(--accent-ink); font-size: 14px; }
 .reminder-bar.off { background: var(--sunken); color: var(--ink-2); }
 .ob-why .linkish { font-size: 13px; margin-top: 4px; }
+.brand-word { display: inline-flex; align-items: center; gap: 0.25em; white-space: nowrap; font-family: var(--display); font-weight: 700; color: var(--accent-ink); }
+.brand-word svg { width: 0.95em; height: 0.95em; flex: none; }
+.eyebrow .brand-word { color: inherit; }

@@ -6,6 +6,7 @@ import { sb } from "@/lib/supabase";
 import { writeSession } from "@/lib/storage";
 import { useSession } from "./session";
 import { Icon } from "./ui";
+import { Brand } from "./Brand";
 
 const back = () => location.origin + "/";
 
@@ -53,9 +54,9 @@ export function Login() {
     <div className="landing">
       <section className="landing-top">
         <div className="landing-t">
-          <span className="eyebrow">ورقك أسهل</span>
+          <span className="eyebrow"><Brand /> أسهل</span>
           <h1>كل مستندات شركتك في مكان واحد، ولن يفوتك أي موعد</h1>
-          <p>يذكّرك ورقك قبل انتهاء أي مستند، ويوضح لك هل تنفذ الخطوة بنفسك أم مع مقدم خدمة، وبأي تكلفة وفي أي مدة. وإذا اخترت مقدم خدمة، تتابع عمله خطوة بخطوة.</p>
+          <p>يذكّرك <Brand /> قبل انتهاء أي مستند، ويوضح لك هل تنفذ الخطوة بنفسك أم مع مقدم خدمة، وبأي تكلفة وفي أي مدة. وإذا اخترت مقدم خدمة، تتابع عمله خطوة بخطوة.</p>
           <div className="perks">
             <span><Icon name="check" size={16} />تذكير قبل كل تجديد</span>
             <span><Icon name="check" size={16} />أسعار مقدمي الخدمة ومددهم أمامك</span>
