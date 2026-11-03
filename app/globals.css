@@ -395,3 +395,13 @@ html, body { overflow-x: clip; }
 .linkish.danger { color: var(--bad); justify-self: start; font-size: 13px; }
 label.btn { gap: 6px; align-items: center; }
 label.btn.disabled { opacity: .5; pointer-events: none; }
+
+/* Reading a company file */
+.read-panel { border-color: var(--accent); }
+.read-panel h2 { display: flex; gap: 8px; align-items: center; }
+.read-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.read-fields label .chip { margin-inline-start: 6px; font-size: 11.5px; }
+.reading { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 12px 0; }
+.spinner { width: 20px; height: 20px; border-radius: 50%; border: 3px solid var(--accent-soft); border-top-color: var(--accent); animation: spin .9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.file-tile .chip { justify-self: start; }

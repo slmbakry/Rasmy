@@ -7,6 +7,7 @@ import { fmtDate, num } from "@/lib/format";
 import { buildPack, deleteCompanyFile, fmtSize, savePack, uploadCompanyFile, PACK_DAYS, type CompanyFile, type Plan } from "@/lib/files";
 import { useLoad, useSession } from "../session";
 import { Head, Icon, LoadError, Loading } from "../ui";
+import ReadPanel from "./ReadPanel";
 
 const ERRORS: Record<string, string> = {
   quota: "المساحة المتاحة في باقتك لا تكفي لهذا الملف. احذف ملفات لا تحتاجها، أو رقِّ باقتك.",
@@ -19,12 +20,13 @@ export default function Files({ companyId }: { companyId: string }) {
   const { toast } = useSession();
   const [picked, setPicked] = useState<string[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
+  const [reading, setReading] = useState<string | null>(null);
   const [pack, setPack] = useState<{ file: File; url?: string } | null>(null);
   const { data, error, reload } = useLoad(async () => {
     const { data: co } = await sb.from("companies").select("id,name,plan,plans(*)").eq("id", companyId).maybeSingle();
     if (!co) return { co: null };
     const [{ data: docs }, { data: files }, { data: used }] = await Promise.all([
-      sb.from("documents").select("id,title").eq("company_id", companyId).order("title"),
+      sb.from("documents").select("id,title,expires_on,service_id").eq("company_id", companyId).order("title"),
       sb.from("company_files").select("*").eq("company_id", companyId).order("created_at"),
       sb.rpc("company_usage", { cid: companyId }),
     ]);
@@ -109,6 +111,11 @@ export default function Files({ companyId }: { companyId: string }) {
         <div className={"meter" + (pct >= 90 ? " bad" : pct >= 75 ? " warn" : "")} aria-hidden="true"><i style={{ width: `${Math.max(pct, used ? 2 : 0)}%` }} /></div>
         <small className="note">{fmtSize(used)} من {fmtSize(plan.storage_bytes)}{pct >= 75 ? ". اقتربت من الحد الأقصى لباقتك." : ""}</small>
       </section>
+      {reading && files.find((f) => f.id === reading) && (() => {
+        const f = files.find((x) => x.id === reading);
+        return <ReadPanel key={f.id} file={f} doc={docs.find((d) => d.id === f.document_id) || null}
+          onClose={() => setReading(null)} onSaved={() => { setReading(null); reload(); }} />;
+      })()}
       <div className="split">
         <div className="split-main">
           {groups.map((g) => {
@@ -131,7 +138,12 @@ export default function Files({ companyId }: { companyId: string }) {
                         </button>
                         <label className="file-pick"><input type="checkbox" checked={picked.includes(f.id)} onChange={() => toggle(f.id)} />ضمن الملف المرسل</label>
                         <small className="note">{fmtSize(f.size)} · {fmtDate(f.created_at)}</small>
-                        <button type="button" className="linkish danger" onClick={() => remove(f)}>حذف</button>
+                        <div className="row between">
+                          <button type="button" className="linkish" onClick={() => { setReading(f.id); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
+                            {f.extracted ? "البيانات المقروءة" : "قراءة البيانات"}</button>
+                          <button type="button" className="linkish danger" onClick={() => remove(f)}>حذف</button>
+                        </div>
+                        {f.extracted && <span className="chip ok">تمت القراءة: {f.extracted.label}</span>}
                       </div>
                     ))}
                   </div>

@@ -5,7 +5,8 @@ import { sb } from "./supabase";
 import { num } from "./format";
 
 export type Plan = { id: string; title: string; storage_bytes: number; image_max_side: number; image_quality: number };
-export type CompanyFile = { id: string; company_id: string; document_id: string | null; name: string; path: string; mime: string; size: number; created_at: string };
+export type CompanyFile = { id: string; company_id: string; document_id: string | null; name: string; path: string; mime: string; size: number; created_at: string;
+  extracted?: { type: string; label: string; fields: { key: string; label: string; value: string; state: "ok" | "check" | "missing" }[] } | null; read_at?: string | null };
 
 export const MAX_FILE = 10 * 1024 * 1024;
 export const PACK_DAYS = 7;
