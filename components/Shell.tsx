@@ -8,15 +8,19 @@ import { pathFor, readSession } from "@/lib/storage";
 import { useSession, type Role } from "./session";
 import { Icon, Loading } from "./ui";
 import { Consent, Login, NotInvited, SetPassword } from "./auth";
+import { CompaniesProvider } from "./companies";
 
 const NAV: Record<Role, [string, string, string][]> = {
   admin: [["/", "الرئيسية", "home"], ["/admin/performance", "الأداء", "chart"], ["/admin/invites", "الدعوات", "mail"], ["/admin/offices", "مقدمو الخدمة", "building"], ["/admin/companies", "الشركات", "doc"], ["/admin/requirements", "المتطلبات", "docOk"], ["/admin/users", "المستخدمون", "users"]],
-  owner: [["/", "لوحتي", "home"], ["/guide", "مشروع جديد", "pulse"], ["/companies/new", "إضافة شركة", "plus"]],
+  owner: [["/", "الرئيسية", "home"], ["/obligations", "الالتزامات", "clock"], ["/actions", "الإجراءات", "pulse"], ["/files", "ملف الشركة", "doc"], ["/requests", "طلباتي", "list"]],
   office: [["/", "الطلبات", "list"], ["/office/requirements", "المتطلبات", "docOk"]],
 };
 
 function isCurrent(href: string, path: string) {
   if (href === "/") return path === "/" || (/^\/companies\/[^/]+$/.test(path) && path !== "/companies/new");
+  if (href === "/files") return path === "/files" || /^\/companies\/[^/]+\/files$/.test(path);
+  if (href === "/actions") return ["/actions", "/guide", "/plan", "/companies/new"].includes(path) || path.startsWith("/renew/");
+  if (href === "/requests") return path === "/requests" || path.startsWith("/requests/");
   return path === href || path.startsWith(href + "/");
 }
 
@@ -113,7 +117,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       </header>
       {p?.role === "admin" && p.consent_at && <PreviewBar />}
       <div className="pilot">نسخة تجريبية بالدعوة فقط</div>
-      <main className="wrap">{body}</main>
+      <main className="wrap">{inside && s.role === "owner" ? <CompaniesProvider>{body}</CompaniesProvider> : body}</main>
     </>
   );
 }

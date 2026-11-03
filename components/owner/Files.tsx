@@ -16,7 +16,7 @@ const ERRORS: Record<string, string> = {
   bad_image: "تعذّرت قراءة هذه الصورة.",
 };
 
-export default function Files({ companyId }: { companyId: string }) {
+export default function Files({ companyId, switcher }: { companyId: string; switcher?: React.ReactNode }) {
   const { toast } = useSession();
   const [picked, setPicked] = useState<string[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
@@ -103,7 +103,7 @@ export default function Files({ companyId }: { companyId: string }) {
 
   return (
     <>
-      <Head back={[`/companies/${companyId}`, "لوحتي"]} eyebrow={co.name} title="ملف الشركة">
+      <Head back={switcher ? undefined : [`/companies/${companyId}`, "الرئيسية"]} eyebrow={<>{co.name} {switcher}</>} title="ملف الشركة">
         <p>ارفع صور مستندات شركتك واحفظها في مكان واحد. وعندما تحتاج إلى إرسالها، اختر ما تريد، وسنجمعها في ملف واحد مضغوط وواضح.</p>
       </Head>
       <section className="panel usage">
