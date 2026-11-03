@@ -3,8 +3,8 @@ import { SessionProvider } from "@/components/session";
 import Shell from "@/components/Shell";
 import "./globals.css";
 
-// Link previews need absolute image URLs; the custom domain replaces this once it is linked.
-const site = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000");
+// Link previews need absolute image URLs, so they point at the public domain.
+const site = process.env.NEXT_PUBLIC_SITE_URL || "https://waraqak.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(site),
