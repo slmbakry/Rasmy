@@ -7,6 +7,9 @@ import { days, money, span } from "@/lib/format";
 import { docStatus, optionsFor, services } from "@/lib/data";
 import { useLoad, useSession } from "../session";
 import { Head, Icon, LoadError, Loading, OptionCards } from "../ui";
+import Requirements from "../Requirements";
+import { placeOf } from "@/lib/places";
+import PlaceFields, { placesFrom } from "./PlaceFields";
 
 const docTitle = (t: { title: string }) => t.title.replace("تجديد ", "");
 const FORMS = ["شركة ذات مسئولية محدودة", "شركة الشخص الواحد", "منشأة فردية", "شركة مساهمة", "شركة توصية بسيطة"];
@@ -25,7 +28,7 @@ export function CompanyNew() {
     ev.preventDefault();
     const f = new FormData(ev.currentTarget);
     setBusy(true);
-    const { data: co, error } = await sb.from("companies").insert({ owner_id: uid, name: String(f.get("name")).trim(), legal_form: f.get("form"), is_demo: isPreview }).select().single();
+    const { data: co, error } = await sb.from("companies").insert({ owner_id: uid, name: String(f.get("name")).trim(), legal_form: f.get("form"), is_demo: isPreview, ...placesFrom(f) }).select().single();
     if (error) { setBusy(false); return toast("تعذّر حفظ الشركة، حاول مرة أخرى", true); }
     const docs = types.map((t) => ({ t, v: String(f.get("exp-" + t.id) || "") })).filter((x) => x.v)
       .map(({ t, v }) => ({ company_id: co.id, service_id: t.id, title: docTitle(t), expires_on: v }));
@@ -43,6 +46,7 @@ export function CompanyNew() {
             <div className="field"><label htmlFor="c-name">اسم الشركة</label><input id="c-name" name="name" required /></div>
             <div className="field"><label htmlFor="c-form">الشكل القانوني</label><select id="c-form" name="form">{FORMS.map((x) => <option key={x}>{x}</option>)}</select></div>
           </div>
+          <PlaceFields />
         </section>
         <section className="panel">
           <div className="row between"><h2>المستندات</h2><span className="note">اترك التاريخ فارغًا إذا لم يكن لدى الشركة هذا المستند</span></div>
@@ -95,7 +99,7 @@ export function Renew({ docId }: { docId: string }) {
   const [busy, setBusy] = useState(false);
   const { data, error } = useLoad(async () => {
     const svcs = await services();
-    const { data: d } = await sb.from("documents").select("*, companies(id,name,owner_id)").eq("id", docId).maybeSingle();
+    const { data: d } = await sb.from("documents").select("*, companies(id,name,owner_id,governorate,registry_office,tax_office)").eq("id", docId).maybeSingle();
     if (!d) return { d: null };
     return { d, s: svcs[d.service_id], opts: await optionsFor(d.service_id, isPreview) };
   }, [docId, isPreview]);
@@ -128,7 +132,7 @@ export function Renew({ docId }: { docId: string }) {
             <button className="btn primary" type="button" disabled={busy} onClick={go}>تأكيد الطلب</button></div>
         </section>
         <aside className="split-side">
-          <section className="panel"><h2>جهّز هذه المستندات</h2><ul className="checklist">{s.docs.map((x) => <li key={x}><Icon name="check" size={16} />{x}</li>)}</ul></section>
+          <section className="panel"><Requirements serviceId={s.id} kind={s.place_kind} place={placeOf(d.companies, s.place_kind)} title="جهّز هذه المستندات" /></section>
           <section className="panel"><h2>كيف رتّبنا الخيارات</h2><p className="note">التقييم من أصحاب الأعمال بعد كل طلب، ونسبة الالتزام بالمواعيد محسوبة من تواريخ الطلبات نفسها.</p></section>
         </aside>
       </div>
@@ -136,3 +140,39 @@ export function Renew({ docId }: { docId: string }) {
   );
 }
 
+
+export function CompanyEdit({ companyId }: { companyId: string }) {
+  const router = useRouter();
+  const { toast } = useSession();
+  const [busy, setBusy] = useState(false);
+  const { data: co, error } = useLoad(async () => {
+    const { data } = await sb.from("companies").select("id,name,legal_form,governorate,registry_office,tax_office").eq("id", companyId).maybeSingle();
+    return data;
+  }, [companyId]);
+  if (error) return <LoadError />;
+  if (co === undefined) return <Loading />;
+  if (!co) return <section className="panel"><p>هذه الشركة غير موجودة.</p></section>;
+  const save = async (ev: React.FormEvent<HTMLFormElement>) => {
+    ev.preventDefault();
+    const f = new FormData(ev.currentTarget);
+    setBusy(true);
+    const { error } = await sb.from("companies").update({ name: String(f.get("name")).trim(), legal_form: f.get("form"), ...placesFrom(f) }).eq("id", companyId);
+    setBusy(false);
+    if (error) return toast("تعذّر حفظ بيانات الشركة", true);
+    toast("تم حفظ بيانات الشركة"); router.push("/companies/" + companyId);
+  };
+  const forms = FORMS.includes(co.legal_form) || !co.legal_form ? FORMS : [co.legal_form, ...FORMS];
+  return (
+    <>
+      <Head back={[`/companies/${companyId}`, "لوحتي"]} eyebrow={co.name} title="بيانات الشركة" />
+      <form className="panel" onSubmit={save}>
+        <div className="form-row two">
+          <div className="field"><label htmlFor="c-name">اسم الشركة</label><input id="c-name" name="name" required defaultValue={co.name} /></div>
+          <div className="field"><label htmlFor="c-form">الشكل القانوني</label><select id="c-form" name="form" defaultValue={co.legal_form || FORMS[0]}>{forms.map((x) => <option key={x}>{x}</option>)}</select></div>
+        </div>
+        <PlaceFields values={co} />
+        <button className="btn primary" type="submit" disabled={busy}>حفظ</button>
+      </form>
+    </>
+  );
+}

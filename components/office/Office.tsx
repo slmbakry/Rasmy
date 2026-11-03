@@ -8,10 +8,12 @@ import { days, fmtDate, money } from "@/lib/format";
 import { EVENTS, STATUS, services, sortStages, stageLate } from "@/lib/data";
 import { useLoad, useSession } from "../session";
 import { FilesBlock, Head, Kpi, LoadError, Loading, StageRow, finishStage } from "../ui";
+import Requirements from "../Requirements";
+import { placeOf } from "@/lib/places";
 
 function NoOffice() {
   const { profile } = useSession();
-  return <section className="panel"><p>{profile.role === "admin" ? "اختر المكتب الذي تريد التجربة به من الشريط في الأعلى." : "حسابك غير مرتبط بمكتب بعد. تواصل مع مدير المنصة."}</p></section>;
+  return <section className="panel"><p>{profile.role === "admin" ? "اختر مقدم الخدمة الذي تريد التجربة به من الشريط في الأعلى." : "حسابك غير مرتبط بمقدم خدمة بعد. تواصل مع مدير المنصة."}</p></section>;
 }
 
 // Days late on the stage in progress, if any.
@@ -41,7 +43,7 @@ export function OfficeHome() {
   const lateCount = groups[1][2].filter((r) => lateOf(r)).length;
   return (
     <>
-      <Head eyebrow={office?.name || "المكتب"} title="الطلبات"><p>اقبل الطلب أولًا، ثم حدّد كل مرحلة عند اكتمالها. يرى صاحب العمل التحديث في اللحظة نفسها.</p></Head>
+      <Head eyebrow={office?.name || "مقدم الخدمة"} title="الطلبات"><p>اقبل الطلب أولًا، ثم حدّد كل مرحلة عند اكتمالها. يرى صاحب العمل التحديث في اللحظة نفسها.</p></Head>
       <div className="kpis">
         <Kpi ic="mail" tone={groups[0][2].length ? "warn" : ""} value={groups[0][2].length} label="طلب جديد" />
         <Kpi ic="list" value={groups[1][2].length} label="قيد التنفيذ" />
@@ -81,7 +83,7 @@ export function Job({ id }: { id: string }) {
     if (!officeId) return null;
     const svcs = await services();
     const [{ data: r }, { data: stages }, { data: events }] = await Promise.all([
-      sb.from("requests").select("*, companies(name,legal_form)").eq("id", id).eq("office_id", officeId).maybeSingle(),
+      sb.from("requests").select("*, companies(name,legal_form,governorate,registry_office,tax_office)").eq("id", id).eq("office_id", officeId).maybeSingle(),
       sb.from("request_stages").select("*").eq("request_id", id).order("idx"),
       sb.from("events").select("*").eq("request_id", id).order("created_at"),
     ]);
@@ -158,7 +160,7 @@ export function Job({ id }: { id: string }) {
           <div className="kv"><span>التكلفة المعلنة</span><b>{money(r.quoted_fee)}</b></div>
           <div className="kv"><span>المدة المعلنة</span><b>{days(r.quoted_days || 0)}</b></div>
           <div className="kv"><span>تاريخ الطلب</span><b>{fmtDate(r.created_at)}</b></div>
-          {s?.docs?.length > 0 && <div className="docs"><b>المستندات المطلوبة</b><ul>{s.docs.map((x) => <li key={x}>{x}</li>)}</ul></div>}
+          {s && <Requirements serviceId={s.id} kind={s.place_kind} place={placeOf(r.companies, s.place_kind)} />}
           <div><FilesBlock requestId={id} /></div>
           <h3 className="sub">سجل النشاط</h3>
           {events.map((e) => <div key={e.id} className="kv"><span>{EVENTS[e.kind] || e.kind}{e.note ? ": " + e.note : ""}</span><small>{fmtDate(e.created_at)}</small></div>)}

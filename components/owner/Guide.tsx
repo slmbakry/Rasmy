@@ -7,6 +7,7 @@ import { days, money, num } from "@/lib/format";
 import { optionsFor, services, type Option } from "@/lib/data";
 import { useLoad, useSession } from "../session";
 import { Head, Icon, Kpi, LoadError, Loading, OptionCards } from "../ui";
+import Requirements from "../Requirements";
 
 const QUESTIONS = [
   { key: "partners", q: "هل ستبدأ وحدك أم مع شركاء؟", opts: [["alone", "وحدي", "المشروع ملكي بالكامل"], ["many", "معي شريك أو أكثر", "اثنان أو أكثر في الملكية"]] },
@@ -135,10 +136,10 @@ export function Plan() {
                 </button>
                 {open && (
                   <div className="step-b">
-                    <div className="docs"><b>المستندات المطلوبة</b><ul>{s.docs.map((d) => <li key={d}>{d}</li>)}</ul></div>
+                    <Requirements serviceId={id} kind={s.place_kind} />
                     <b>من ينفذها؟</b>
                     <OptionCards opts={opts[id]} name={"alt-" + id} picked={cur.key} onPick={(k) => { guide.choices[id] = k; redraw((x) => x + 1); }} />
-                    {opts[id].length === 1 && <p className="note">لم يحدد أي مكتب سعرًا لهذه الخدمة بعد.</p>}
+                    {opts[id].length === 1 && <p className="note">لم يحدد أي مقدم خدمة سعرًا لهذه الخدمة بعد.</p>}
                   </div>
                 )}
               </div>
@@ -156,7 +157,7 @@ export function Plan() {
             <div className="field"><label htmlFor="co-name">اسم مشروعك</label>
               <input id="co-name" placeholder="مثلاً: مخبز النور" defaultValue={guide.name} onChange={(ev) => { guide.name = ev.target.value; }} /></div>
             <button className="btn primary" type="button" disabled={busy} onClick={launch}>ابدأ التنفيذ</button>
-            <p className="note">الأسعار من المكاتب المعتمدة، والرسوم الحكومية تقديرية ويتم تأكيدها قبل الدفع.</p>
+            <p className="note">الأسعار من مقدمي الخدمة المعتمدين، والرسوم الحكومية تقديرية ويتم تأكيدها قبل الدفع.</p>
           </section>
         </aside>
       </div>

@@ -10,7 +10,8 @@ import { fmtSize } from "@/lib/files";
 import { useLoad, useSession } from "../session";
 import { Head, Kpi, LoadError, Loading } from "../ui";
 
-const ROLES = { owner: "صاحب عمل", office: "مكتب", admin: "مدير" };
+const PROVIDER_KINDS: Record<string, string> = { accounting: "مكتب محاسبة", law: "مكتب محاماة", individual: "فرد" };
+const ROLES = { owner: "صاحب عمل", office: "مقدم خدمة", admin: "مدير" };
 const WAIT_DAYS = 1;
 const since = (t: string) => (Date.now() - new Date(t).getTime()) / DAY;
 
@@ -57,7 +58,7 @@ export function AdminHome() {
   }, [demo]);
   const head = (
     <Head eyebrow="لوحة المدير" title="نظرة سريعة">
-      <p>هنا ترى الطلبات المتأخرة والمكاتب التي لم ترد بعد. ويمكنك أيضًا تجربة المنصة كصاحب عمل أو كمكتب من الشريط في الأعلى.</p>
+      <p>هنا ترى الطلبات المتأخرة ومقدمي الخدمة الذين لم يردوا بعد. ويمكنك أيضًا تجربة المنصة كصاحب عمل أو كمقدم خدمة من الشريط في الأعلى.</p>
       <DemoSwitch on={demo} set={setDemo} />
     </Head>
   );
@@ -77,13 +78,13 @@ export function AdminHome() {
       <div className="kpis">
         <Kpi ic="list" value={open.length} label="طلب مفتوح" />
         <Kpi ic="alert" tone={late.length ? "bad" : "ok"} value={late.length} label="طلب متأخر" />
-        <Kpi ic="clock" tone={waiting.length ? "warn" : "ok"} value={waiting.length} label="بانتظار رد المكتب" />
+        <Kpi ic="clock" tone={waiting.length ? "warn" : "ok"} value={waiting.length} label="بانتظار رد مقدم الخدمة" />
         <Kpi ic="check" tone="ok" value={onTime === null ? "—" : num(onTime) + "٪"} label="اكتملت في موعدها" />
         <Kpi ic="users" value={users} label="مستخدم" />
         <Kpi ic="mail" value={pending} label="دعوة معلّقة" />
       </div>
       <section className="panel">
-        <div className="row between"><h2>طلبات متأخرة</h2><Link className="btn small" href="/admin/performance">أداء المكاتب</Link></div>
+        <div className="row between"><h2>طلبات متأخرة</h2><Link className="btn small" href="/admin/performance">أداء مقدمي الخدمة</Link></div>
         {late.length ? <div className="reqs">{late.map((r) => (
           <Link key={r.id} className="req late" href={`/requests/${r.id}`}>
             <div className="row between"><b>{title(r)}</b><span className="chips">{r.escalated_at && <span className="chip warn">تم التصعيد</span>}<span className="chip bad">متأخر {days(Math.max(r.stageLate, r.overdue))}</span></span></div>
@@ -92,13 +93,13 @@ export function AdminHome() {
           </Link>
         ))}</div> : <p className="empty">لا توجد طلبات متأخرة.</p>}
       </section>
-      <section className="panel"><h2>مكاتب لم ترد على طلبات</h2>
+      <section className="panel"><h2>مقدمو خدمة لم يردوا على طلبات</h2>
         {waiting.length ? <div className="reqs">{waiting.map((r) => (
           <Link key={r.id} className="req" href={`/requests/${r.id}`}>
             <div className="row between"><b>{title(r)}</b><span className="chips">{r.escalated_at && <span className="chip bad">تم التصعيد</span>}<span className="chip warn">ينتظر منذ {days(r.waiting)}</span></span></div>
             <small>{r.companies?.name || ""} · {who(r)}</small>
           </Link>
-        ))}</div> : <p className="empty">ردّت جميع المكاتب على طلباتها.</p>}
+        ))}</div> : <p className="empty">ردّ جميع مقدمي الخدمة على طلباتهم.</p>}
       </section>
     </>
   );
@@ -139,13 +140,13 @@ export function Performance() {
   const star = (v: number | null) => (v === null ? "—" : num(v.toFixed(1)));
   return (
     <>
-      <Head back={["/", "الرئيسية"]} eyebrow="أداء المكاتب" title="من يلتزم بمواعيده">
-        <p>تُحسب هذه الأرقام من تواريخ الطلبات نفسها، لا من آراء الأشخاص. ويعني الالتزام بالموعد أن الطلب اكتمل في المدة التي أعلنها المكتب أو أقل.</p>
+      <Head back={["/", "الرئيسية"]} eyebrow="أداء مقدمي الخدمة" title="من يلتزم بمواعيده">
+        <p>تُحسب هذه الأرقام من تواريخ الطلبات نفسها، لا من آراء الأشخاص. ويعني الالتزام بالموعد أن الطلب اكتمل في المدة التي أعلنها مقدم الخدمة أو أقل.</p>
         <DemoSwitch on={demo} set={setDemo} />
       </Head>
       {error ? <LoadError /> : !data ? <Loading /> : (
         <section className="panel"><div className="table-wrap">{data.length ? (
-          <table><thead><tr><th>المكتب</th><th>الطلبات</th><th>مفتوح</th><th>متأخر الآن</th><th>مكتمل</th><th>نسبة القبول</th><th>متوسط وقت الرد</th><th>في الموعد</th><th>متوسط التأخير</th><th>الاحترافية</th><th>السرعة</th></tr></thead>
+          <table><thead><tr><th>مقدم الخدمة</th><th>الطلبات</th><th>مفتوح</th><th>متأخر الآن</th><th>مكتمل</th><th>نسبة القبول</th><th>متوسط وقت الرد</th><th>في الموعد</th><th>متوسط التأخير</th><th>الاحترافية</th><th>السرعة</th></tr></thead>
             <tbody>{data.map((x) => (
               <tr key={x.o.id}>
                 <td>{x.o.name}{!x.o.active && <> <span className="chip">موقوف</span></>}{x.o.is_demo && <> <span className="chip">تجريبي</span></>}</td>
@@ -155,7 +156,7 @@ export function Performance() {
                 <td>{dur(x.delay)}</td><td>{star(x.pro)}</td><td>{star(x.speed)}</td>
               </tr>
             ))}</tbody></table>
-        ) : <p className="empty">لا توجد مكاتب بعد.</p>}</div>
+        ) : <p className="empty">لا يوجد مقدمو خدمة بعد.</p>}</div>
           <p className="note">التقييمات من أصحاب العمل بعد اكتمال الطلب.</p></section>
       )}
     </>
@@ -177,7 +178,7 @@ export function Invites() {
     const form = e.currentTarget, f = new FormData(form);
     const row = { email: String(f.get("email")).trim().toLowerCase(), role, invited_by: profile.id,
       office_id: role === "office" ? String(f.get("office") || "") || null : null };
-    if (row.role === "office" && !row.office_id) return toast("أضف المكتب أولًا من صفحة المكاتب", true);
+    if (row.role === "office" && !row.office_id) return toast("أضف مقدم الخدمة أولًا من صفحة مقدمي الخدمة", true);
     const { error } = await sb.from("invites").insert(row);
     if (error) return toast(error.code === "23505" ? "هذا البريد مدعو من قبل" : "تعذّرت إضافة الدعوة", true);
     toast("تمت إضافة الدعوة"); form.reset(); setRole("owner"); reload();
@@ -190,15 +191,15 @@ export function Invites() {
         <form className="form-row" onSubmit={add}>
           <div className="field"><label htmlFor="inv-email">البريد</label><input id="inv-email" name="email" type="email" className="ltr" required /></div>
           <div className="field"><label htmlFor="inv-role">الدور</label>
-            <select id="inv-role" value={role} onChange={(e) => setRole(e.target.value)}><option value="owner">صاحب عمل</option><option value="office">مكتب</option><option value="admin">مدير</option></select></div>
-          <div className="field" hidden={role !== "office"}><label htmlFor="inv-office">المكتب</label>
+            <select id="inv-role" value={role} onChange={(e) => setRole(e.target.value)}><option value="owner">صاحب عمل</option><option value="office">مقدم خدمة</option><option value="admin">مدير</option></select></div>
+          <div className="field" hidden={role !== "office"}><label htmlFor="inv-office">مقدم الخدمة</label>
             <select id="inv-office" name="office">{(data?.offices || []).map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select></div>
           <button className="btn primary" type="submit">أضف الدعوة</button>
         </form>
       </section>
       <section className="panel"><h2>كل الدعوات</h2><div className="table-wrap">
         {error || data?.failed ? <p className="empty">تعذّر تحميل الدعوات</p> : !data ? <Loading /> : data.list.length ? (
-          <table><thead><tr><th>البريد</th><th>الدور</th><th>المكتب</th><th>الحالة</th></tr></thead><tbody>
+          <table><thead><tr><th>البريد</th><th>الدور</th><th>مقدم الخدمة</th><th>الحالة</th></tr></thead><tbody>
             {data.list.map((i: any) => (
               <tr key={i.email}><td className="ltr">{i.email}</td><td>{ROLES[i.role]}</td><td>{i.offices?.name || ""}</td>
                 <td>{i.accepted_at ? <span className="chip ok">دخل {fmtDate(i.accepted_at)}</span> : <span className="chip warn">معلّقة</span>}</td></tr>
@@ -221,31 +222,33 @@ export function Offices() {
     e.preventDefault();
     const form = e.currentTarget, f = new FormData(form);
     const val = (k: string) => String(f.get(k) || "").trim() || null;
-    const { error } = await sb.from("offices").insert({ name: val("name"), phone: val("phone"), license_no: val("license") });
-    if (error) return toast("تعذّرت إضافة المكتب", true);
-    toast("تمت إضافة المكتب"); form.reset(); reload();
+    const { error } = await sb.from("offices").insert({ name: val("name"), kind: val("kind"), phone: val("phone"), license_no: val("license") });
+    if (error) return toast("تعذّرت إضافة مقدم الخدمة", true);
+    toast("تمت إضافة مقدم الخدمة"); form.reset(); reload();
   };
   return (
     <>
-      <Head eyebrow="المكاتب" title="المكاتب المعتمدة"><p>أضف المكتب، وحدد أسعاره ومدده لكل خدمة، ثم أرسل دعوة لموظفيه بدور مكتب.</p></Head>
+      <Head eyebrow="مقدمو الخدمة" title="مقدمو الخدمة المعتمدون"><p>أضف مقدم الخدمة، وحدد أسعاره ومدده لكل خدمة، ثم أرسل دعوة لموظفيه بدور مقدم خدمة.</p></Head>
       <section className="panel">
-        <h2>مكتب جديد</h2>
-        <form className="form-row" onSubmit={add}>
-          <div className="field"><label htmlFor="off-name">اسم المكتب</label><input id="off-name" name="name" required /></div>
+        <h2>مقدم خدمة جديد</h2>
+        <form className="form-row five" onSubmit={add}>
+          <div className="field"><label htmlFor="off-name">الاسم</label><input id="off-name" name="name" required /></div>
+          <div className="field"><label htmlFor="off-kind">النوع</label><select id="off-kind" name="kind">
+            {Object.entries(PROVIDER_KINDS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></div>
           <div className="field"><label htmlFor="off-phone">الهاتف</label><input id="off-phone" name="phone" className="ltr" inputMode="tel" /></div>
           <div className="field"><label htmlFor="off-lic">رقم الترخيص</label><input id="off-lic" name="license" className="ltr" /></div>
-          <button className="btn primary" type="submit">أضف المكتب</button>
+          <button className="btn primary" type="submit">إضافة</button>
         </form>
       </section>
-      <section className="panel"><h2>كل المكاتب</h2><div className="table-wrap">
-        {error ? <p className="empty">تعذّر تحميل المكاتب</p> : !data ? <Loading /> : data.length ? (
-          <table><thead><tr><th>المكتب</th><th>الهاتف</th><th>رقم الترخيص</th><th>خدمات مسعّرة</th><th></th></tr></thead><tbody>
+      <section className="panel"><h2>كل مقدمي الخدمة</h2><div className="table-wrap">
+        {error ? <p className="empty">تعذّر تحميل مقدمي الخدمة</p> : !data ? <Loading /> : data.length ? (
+          <table><thead><tr><th>مقدم الخدمة</th><th>النوع</th><th>الهاتف</th><th>رقم الترخيص</th><th>خدمات مسعّرة</th><th></th></tr></thead><tbody>
             {data.map((o) => (
-              <tr key={o.id}><td>{o.name}</td><td className="ltr">{o.phone || ""}</td><td className="ltr">{o.license_no || ""}</td>
+              <tr key={o.id}><td>{o.name}</td><td>{PROVIDER_KINDS[o.kind] || ""}</td><td className="ltr">{o.phone || ""}</td><td className="ltr">{o.license_no || ""}</td>
                 <td>{num(o.office_services?.[0]?.count || 0)}</td><td><Link className="btn small" href={`/admin/offices/${o.id}/prices`}>الأسعار والمدد</Link></td></tr>
             ))}
           </tbody></table>
-        ) : <p className="empty">لا توجد مكاتب بعد. ابدأ بإضافة المكتب الشريك.</p>}
+        ) : <p className="empty">لا يوجد مقدمو خدمة بعد. ابدأ بإضافة الشريك الأول.</p>}
       </div></section>
     </>
   );
@@ -266,7 +269,7 @@ export function Prices({ officeId }: { officeId: string }) {
   if (error) return <LoadError />;
   if (!data) return <Loading />;
   const { office, svcs, cur } = data;
-  if (!office) return <section className="panel"><p>هذا المكتب غير موجود.</p><Link className="btn" href="/admin/offices">العودة إلى المكاتب</Link></section>;
+  if (!office) return <section className="panel"><p>مقدم الخدمة هذا غير موجود.</p><Link className="btn" href="/admin/offices">العودة إلى مقدمي الخدمة</Link></section>;
   const save = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
@@ -282,11 +285,11 @@ export function Prices({ officeId }: { officeId: string }) {
   };
   return (
     <>
-      <Head back={["/admin/offices", "المكاتب"]} eyebrow="الأسعار والمدد" title={office.name}>
-        <p>اكتب أتعاب المكتب ومدته لكل خدمة يقدمها. الخدمة التي تتركها فارغة لن تظهر لصاحب العمل مع هذا المكتب. وتُحسب الرسوم الحكومية تلقائيًا.</p>
+      <Head back={["/admin/offices", "مقدمو الخدمة"]} eyebrow="الأسعار والمدد" title={office.name}>
+        <p>اكتب أتعاب مقدم الخدمة ومدته لكل خدمة يقدمها. الخدمة التي تتركها فارغة لن تظهر لصاحب العمل مع مقدم الخدمة هذا. وتُحسب الرسوم الحكومية تلقائيًا.</p>
       </Head>
       <form className="panel" onSubmit={save}>
-        <div className="table-wrap"><table><thead><tr><th>الخدمة</th><th>الرسوم الحكومية</th><th>أتعاب المكتب بالجنيه</th><th>المدة بالأيام</th></tr></thead><tbody>
+        <div className="table-wrap"><table><thead><tr><th>الخدمة</th><th>الرسوم الحكومية</th><th>الأتعاب بالجنيه</th><th>المدة بالأيام</th></tr></thead><tbody>
           {Object.values(svcs).map((s) => (
             <tr key={s.id}><td>{s.title}<br /><small className="note">{KINDS[s.kind]}</small></td><td>{money(s.gov_fee)}</td>
               <td><input className="mini" type="number" min="0" step="50" name={`fee-${s.id}`} defaultValue={cur[s.id]?.fee ?? ""} /></td>
@@ -310,7 +313,7 @@ export function Users() {
       <Head eyebrow="المستخدمون" title="من دخلوا المنصة" />
       <section className="panel"><div className="table-wrap">
         {error ? <p className="empty">تعذّر تحميل المستخدمين</p> : !data ? <Loading /> : (
-          <table><thead><tr><th>البريد</th><th>الدور</th><th>المكتب</th><th>الموافقة على البيانات</th><th>أول دخول</th></tr></thead><tbody>
+          <table><thead><tr><th>البريد</th><th>الدور</th><th>مقدم الخدمة</th><th>الموافقة على البيانات</th><th>أول دخول</th></tr></thead><tbody>
             {data.map((u) => (
               <tr key={u.email}><td className="ltr">{u.email}</td><td>{u.role ? ROLES[u.role] : <span className="chip warn">غير مدعو</span>}</td>
                 <td>{u.offices?.name || ""}</td><td>{u.consent_at ? fmtDate(u.consent_at) : "لم يوافق بعد"}</td><td>{fmtDate(u.created_at)}</td></tr>

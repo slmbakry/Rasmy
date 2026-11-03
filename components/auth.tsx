@@ -55,11 +55,11 @@ export function Login() {
         <div className="landing-t">
           <span className="eyebrow">ورقك أسهل</span>
           <h1>كل مستندات شركتك في مكان واحد، ولن يفوتك أي موعد</h1>
-          <p>يذكّرك ورقك قبل انتهاء أي مستند، ويوضح لك هل تنفذ الخطوة بنفسك أم مع مكتب، وبأي تكلفة وفي أي مدة. وإذا اخترت مكتبًا، تتابع عمله خطوة بخطوة.</p>
+          <p>يذكّرك ورقك قبل انتهاء أي مستند، ويوضح لك هل تنفذ الخطوة بنفسك أم مع مقدم خدمة، وبأي تكلفة وفي أي مدة. وإذا اخترت مقدم خدمة، تتابع عمله خطوة بخطوة.</p>
           <div className="perks">
             <span><Icon name="check" size={16} />تذكير قبل كل تجديد</span>
-            <span><Icon name="check" size={16} />أسعار المكاتب ومددها أمامك</span>
-            <span><Icon name="check" size={16} />تقييم حقيقي لالتزام كل مكتب</span>
+            <span><Icon name="check" size={16} />أسعار مقدمي الخدمة ومددهم أمامك</span>
+            <span><Icon name="check" size={16} />تقييم حقيقي لالتزام كل مقدم خدمة</span>
           </div>
         </div>
         <section className="panel auth">
@@ -81,7 +81,7 @@ export function Login() {
         <div className="how">
           <div><span className="tile-ic"><Icon name="doc" size={24} /></span><b>أضف شركتك ومستنداتها</b><p>السجل التجاري والبطاقة الضريبية والتراخيص، وتاريخ انتهاء كل منها.</p></div>
           <div><span className="tile-ic warn"><Icon name="bell" size={24} /></span><b>انتظر التذكير</b><p>نذكّرك في الوقت الذي يجب أن تبدأ فيه، لا في يوم الانتهاء.</p></div>
-          <div><span className="tile-ic ok"><Icon name="pulse" size={24} /></span><b>اختر وتابع</b><p>نفّذها بنفسك أو اختر مكتبًا، وتابع كل مرحلة حتى تكتمل.</p></div>
+          <div><span className="tile-ic ok"><Icon name="pulse" size={24} /></span><b>اختر وتابع</b><p>نفّذها بنفسك أو اختر مقدم خدمة، وتابع كل مرحلة حتى تكتمل.</p></div>
         </div>
       </section>
     </div>
@@ -145,7 +145,7 @@ export function Consent() {
       <span className="eyebrow">قبل أن تبدأ</span>
       <h1 style={{ fontSize: 24 }}>بياناتك وطريقة استخدامها</h1>
       <p>ستحفظ المنصة بيانات شركاتك ومستنداتها وطلباتك، لنعرض لك خطواتك ونذكّرك بمواعيد التجديد.</p>
-      <p>لا يرى المكتب الذي تختاره إلا بيانات الطلب المسند إليه، ولا يطّلع عليها أحد غيره.</p>
+      <p>لا يرى مقدم الخدمة الذي تختاره إلا بيانات الطلب المسند إليه، ولا يطّلع عليها أحد غيره.</p>
       <p>يمكنك طلب حذف بياناتك في أي وقت.</p>
       <label className="check"><input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} /> أوافق على حفظ بياناتي واستخدامها بهذه الطريقة</label>
       <button className="btn primary" type="button" disabled={!agree} onClick={go}>ابدأ</button>

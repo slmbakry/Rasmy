@@ -68,7 +68,7 @@ export default function OwnerHome({ companyId }: { companyId?: string }) {
   open.filter((r) => !r.office_id).forEach((r) => todo.push({ tone: "warn", ic: "arrow", title: `${svcs[r.service_id]?.title || ""}: خطوة مطلوبة منك`,
     sub: "تنفذه بنفسك، حدّد كل مرحلة عند اكتمالها", href: `/requests/${r.id}`, cta: "أكمل الخطوة", soft: true }));
   open.filter((r) => r.status === "new" && r.office_id && Date.now() - new Date(r.created_at).getTime() > DAY).forEach((r) => todo.push({ tone: "info", ic: "clock",
-    title: `${r.offices?.name || "المكتب"} لم يرد بعد`, sub: `${svcs[r.service_id]?.title || ""} · يمكنك إلغاؤه واختيار مكتب آخر`, href: `/requests/${r.id}`, cta: "عرض الطلب", soft: true }));
+    title: `${r.offices?.name || "مقدم الخدمة"} لم يرد بعد`, sub: `${svcs[r.service_id]?.title || ""} · يمكنك إلغاؤه واختيار مقدم خدمة آخر`, href: `/requests/${r.id}`, cta: "عرض الطلب", soft: true }));
 
   const ring = list.length ? Math.round((healthy / list.length) * 163) : 0;
   const summary = !list.length ? "لا توجد مستندات لهذه الشركة بعد."
@@ -86,6 +86,10 @@ export default function OwnerHome({ companyId }: { companyId?: string }) {
           <div className="hero-t">
             <span className="eyebrow">{co.legal_form || ""}{co.status === "founding" ? " · تحت التأسيس" : " · نشطة"}</span>
             <h1>{co.name}</h1><p>{summary}</p>
+            <p className="hero-meta">
+              {[co.governorate, co.registry_office && `سجل ${co.registry_office}`, co.tax_office && `مأمورية ${co.tax_office}`].filter(Boolean).join(" · ") || "لم تُحدَّد جهات الشركة بعد"}
+              {" · "}<Link className="on-navy-link" href={`/companies/${co.id}/edit`}>تعديل بيانات الشركة</Link>
+            </p>
           </div>
           {list.length > 0 && (
             <div className="ring">
@@ -146,7 +150,7 @@ export default function OwnerHome({ companyId }: { companyId?: string }) {
           </section>
           {toRate && (
             <section className="panel navy">
-              <span className="tile-ic gold"><Icon name="star" /></span><h2>قيّم {toRate.offices?.name || "المكتب"}</h2>
+              <span className="tile-ic gold"><Icon name="star" /></span><h2>قيّم {toRate.offices?.name || "مقدم الخدمة"}</h2>
               <p>اكتمل {svcs[toRate.service_id]?.title || "طلبك"}. رأيك يساعد غيرك على الاختيار.</p>
               <Link className="btn gold" href={`/requests/${toRate.id}`}>قيّم الآن</Link>
             </section>
@@ -182,7 +186,7 @@ function DocCard({ x, companyId }: { x: any; companyId: string }) {
 function ReqCard({ r, title }: { r: any; title: string }) {
   const st = sortStages(r.request_stages);
   const cur = st.find((x) => !x.done_at), late = cur && ["accepted", "in_progress"].includes(r.status) ? stageLate(cur) : 0;
-  const chip = r.status === "new" && r.office_id ? ["", "بانتظار رد المكتب"] : late ? ["bad", `متأخر ${days(late)}`] : !r.office_id ? ["warn", "خطوة مطلوبة منك"] : ["ok", "في الموعد"];
+  const chip = r.status === "new" && r.office_id ? ["", "بانتظار رد مقدم الخدمة"] : late ? ["bad", `متأخر ${days(late)}`] : !r.office_id ? ["warn", "خطوة مطلوبة منك"] : ["ok", "في الموعد"];
   const seg = (x: typeof cur) => {
     if (x.done_at) return 100;
     if (x !== cur || !x.started_at) return 0;

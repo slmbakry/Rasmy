@@ -16,7 +16,12 @@ type Doc = { id: string; title: string; expires_on: string | null; service_id: s
 // Which read type belongs to each document, so a date is only offered for its own document.
 const TYPE_OF_SERVICE: Record<string, string> = { cr_renewal: "cr", tax_card_renewal: "tax" };
 
-export default function ReadPanel({ file, doc, onClose, onSaved }: { file: CompanyFile; doc: Doc; onClose: () => void; onSaved: () => void }) {
+type Company = { id: string; registry_office?: string | null; tax_office?: string | null };
+
+// The company authority a read document names: a tax card's tax office, a register's registry office.
+const PLACE_OF_TYPE: Record<string, ["tax_office" | "registry_office", string]> = { tax: ["tax_office", "المأمورية"], cr: ["registry_office", "مكتب السجل التجاري"] };
+
+export default function ReadPanel({ file, doc, company, onClose, onSaved }: { file: CompanyFile; doc: Doc; company: Company; onClose: () => void; onSaved: () => void }) {
   const { toast } = useSession();
   const [step, setStep] = useState("تحميل محرك القراءة");
   const [result, setResult] = useState<ReadResult | null>(file.extracted || null);
@@ -24,6 +29,7 @@ export default function ReadPanel({ file, doc, onClose, onSaved }: { file: Compa
   const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [useExpiry, setUseExpiry] = useState(true);
+  const [usePlace, setUsePlace] = useState(true);
   const source = useRef<File | null>(null);
   const fresh = useRef(false);
 
@@ -56,6 +62,9 @@ export default function ReadPanel({ file, doc, onClose, onSaved }: { file: Compa
   const matches = !!(doc && result && TYPE_OF_SERVICE[doc.service_id] === result.type);
   const offerExpiry = !!(matches && expiry && expiry !== doc.expires_on);
   const mismatch = !!(doc && result && TYPE_OF_SERVICE[doc.service_id] && !matches);
+  const placeKey = result ? PLACE_OF_TYPE[result.type] : null;
+  const readPlace = (values.office || "").trim();
+  const offerPlace = !!(placeKey && readPlace && readPlace !== (company[placeKey[0]] || ""));
 
   const save = async () => {
     setBusy(true);
@@ -66,6 +75,10 @@ export default function ReadPanel({ file, doc, onClose, onSaved }: { file: Compa
     if (offerExpiry && useExpiry) {
       const { error: e2 } = await sb.from("documents").update({ expires_on: expiry }).eq("id", doc.id);
       note = e2 ? "تم حفظ البيانات، لكن تعذّر تحديث تاريخ الانتهاء" : "تم حفظ البيانات وتحديث تاريخ انتهاء المستند";
+    }
+    if (offerPlace && usePlace) {
+      const { error: e3 } = await sb.from("companies").update({ [placeKey[0]]: readPlace }).eq("id", company.id);
+      if (e3) note = "تم حفظ البيانات، لكن تعذّر حفظ جهة الشركة";
     }
     // Corrections teach the digit reader, when this read came from it just now.
     try { const r = (window as any).DocReader; if (r && fresh.current) r.learn(values); } catch {}
@@ -109,6 +122,10 @@ export default function ReadPanel({ file, doc, onClose, onSaved }: { file: Compa
               تحديث تاريخ انتهاء «{doc.title}» إلى {fmtDate(expiry)}{doc.expires_on ? `، بدلًا من ${fmtDate(doc.expires_on)}` : ""}</label>
           )}
           {mismatch && <p className="alert">قُرئ هذا الملف على أنه {result.label}، وهو محفوظ تحت «{doc.title}». غيّر نوع المستند إذا كانت القراءة خاطئة، أو انقل الملف إلى المستند الصحيح.</p>}
+          {offerPlace && (
+            <label className="check"><input type="checkbox" checked={usePlace} onChange={(e) => setUsePlace(e.target.checked)} />
+              حفظ «{readPlace}» على أنها {placeKey[1]} التابعة لها الشركة{company[placeKey[0]] ? `، بدلًا من «${company[placeKey[0]]}»` : ""}</label>
+          )}
           <p className="note">راجِع البيانات قبل الحفظ. إذا صحّحت رقمًا، يتعلّم القارئ شكله ليصبح أدق في المرة القادمة.</p>
           <div className="row">
             <button className="btn primary" type="button" disabled={busy} onClick={save}>حفظ البيانات</button>

@@ -23,7 +23,7 @@ export default function Files({ companyId }: { companyId: string }) {
   const [reading, setReading] = useState<string | null>(null);
   const [pack, setPack] = useState<{ file: File; url?: string } | null>(null);
   const { data, error, reload } = useLoad(async () => {
-    const { data: co } = await sb.from("companies").select("id,name,plan,plans(*)").eq("id", companyId).maybeSingle();
+    const { data: co } = await sb.from("companies").select("id,name,plan,governorate,registry_office,tax_office,plans(*)").eq("id", companyId).maybeSingle();
     if (!co) return { co: null };
     const [{ data: docs }, { data: files }, { data: used }] = await Promise.all([
       sb.from("documents").select("id,title,expires_on,service_id").eq("company_id", companyId).order("title"),
@@ -113,7 +113,7 @@ export default function Files({ companyId }: { companyId: string }) {
       </section>
       {reading && files.find((f) => f.id === reading) && (() => {
         const f = files.find((x) => x.id === reading);
-        return <ReadPanel key={f.id} file={f} doc={docs.find((d) => d.id === f.document_id) || null}
+        return <ReadPanel key={f.id} file={f} company={co} doc={docs.find((d) => d.id === f.document_id) || null}
           onClose={() => setReading(null)} onSaved={() => { setReading(null); reload(); }} />;
       })()}
       <div className="split">

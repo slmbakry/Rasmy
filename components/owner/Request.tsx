@@ -5,13 +5,16 @@ import { DAY, days, fmtDate, money, num } from "@/lib/format";
 import { EVENTS, STATUS, services, stageLate } from "@/lib/data";
 import { useLoad, useSession } from "../session";
 import { Avatar, FilesBlock, Head, Kpi, LoadError, Loading, StageRow, finishStage } from "../ui";
+import Requirements from "../Requirements";
+import OwnerConfirm from "./OwnerConfirm";
+import { placeOf } from "@/lib/places";
 
 export default function Request({ id }: { id: string }) {
-  const { uid, toast } = useSession();
+  const { uid, toast, role } = useSession();
   const { data, error, reload } = useLoad(async () => {
     const svcs = await services();
     const [{ data: r }, { data: stages }, { data: events }] = await Promise.all([
-      sb.from("requests").select("*, offices(name,phone), companies(name)").eq("id", id).maybeSingle(),
+      sb.from("requests").select("*, offices(name,phone), companies(name,governorate,registry_office,tax_office)").eq("id", id).maybeSingle(),
       sb.from("request_stages").select("*").eq("request_id", id).order("idx"),
       sb.from("events").select("*").eq("request_id", id).order("created_at"),
     ]);
@@ -48,7 +51,7 @@ export default function Request({ id }: { id: string }) {
   return (
     <>
       <Head back={[`/companies/${r.company_id}`, "لوحتي"]} eyebrow={r.companies?.name || ""} title={s.title}>
-        <p>{self ? "تنفذ هذا الطلب بنفسك، ويمكنك تحديد كل مرحلة عند اكتمالها." : `ينفذه ${r.offices?.name || ""}. والمكتب هو من يحدّث المراحل.`}</p>
+        <p>{self ? "تنفذ هذا الطلب بنفسك، ويمكنك تحديد كل مرحلة عند اكتمالها." : `ينفذه ${r.offices?.name || ""}. ومقدم الخدمة هو من يحدّث المراحل.`}</p>
       </Head>
       <div className="kpis">
         <Kpi ic={r.status === "done" ? "check" : "pulse"} tone={tone} value={label} label="الحالة" />
@@ -56,10 +59,11 @@ export default function Request({ id }: { id: string }) {
         <Kpi ic="chart" tone="ok" value={money(r.quoted_fee)} label="التكلفة المعلنة" />
         <Kpi ic="clock" tone="warn" value={r.status === "done" ? fmtDate(r.completed_at) : fmtDate(due)} label={r.status === "done" ? "اكتمل في" : "الموعد المتوقع"} />
       </div>
-      {!self && r.status === "new" && <p className="alert">الطلب بانتظار قبول المكتب.</p>}
-      {r.escalated_at && open && <p className="alert">تم إبلاغ الإدارة بهذا التأخير، وهي تتابعه مع المكتب.</p>}
+      {!self && r.status === "new" && <p className="alert">الطلب بانتظار قبول مقدم الخدمة.</p>}
+      {r.escalated_at && open && <p className="alert">تم إبلاغ الإدارة بهذا التأخير، وهي تتابعه مع مقدم الخدمة.</p>}
       <div className="split">
         <div className="split-main">
+          {r.status === "done" && role === "owner" && <OwnerConfirm companyId={r.company_id} service={s} />}
           {canRate && <RateBlock rating={rating} office={r.offices?.name} requestId={id} officeId={r.office_id} onDone={reload} />}
           <section className="panel"><h2>المراحل</h2>
             <div className="track">
@@ -71,10 +75,11 @@ export default function Request({ id }: { id: string }) {
         <aside className="split-side">
           {!self && (
             <section className="panel">
-              <div className="row"><Avatar name={r.offices?.name} /><span className="grow"><b>{r.offices?.name || ""}</b><small className="note">المكتب المنفذ</small></span></div>
+              <div className="row"><Avatar name={r.offices?.name} /><span className="grow"><b>{r.offices?.name || ""}</b><small className="note">مقدم الخدمة المنفذ</small></span></div>
               {r.offices?.phone && <a className="btn" href={`tel:${r.offices.phone}`}><span className="ltr">{r.offices.phone}</span></a>}
             </section>
           )}
+          {r.status !== "done" && <section className="panel"><Requirements serviceId={s.id} kind={s.place_kind} place={placeOf(r.companies, s.place_kind)} /></section>}
           <section className="panel"><FilesBlock requestId={id} /></section>
           <section className="panel"><h2>سجل النشاط</h2>
             {events.slice().reverse().map((e) => (
@@ -94,7 +99,7 @@ export default function Request({ id }: { id: string }) {
 function RateBlock({ rating, office, requestId, officeId, onDone }) {
   const { uid, toast } = useSession();
   if (rating) return (
-    <section className="panel"><h2>تقييمك للمكتب</h2>
+    <section className="panel"><h2>تقييمك لمقدم الخدمة</h2>
       <div className="kv"><span>الاحترافية</span><b>{num(rating.professionalism)} من ٥</b></div>
       <div className="kv"><span>السرعة</span><b>{num(rating.speed)} من ٥</b></div>
       {rating.comment && <p className="note">{rating.comment}</p>}
@@ -114,8 +119,8 @@ function RateBlock({ rating, office, requestId, officeId, onDone }) {
     toast("شكرًا، تم حفظ تقييمك"); onDone();
   };
   return (
-    <section className="panel"><h2>قيّم {office || "المكتب"}</h2>
-      <p className="note">يساعد تقييمك أصحاب الأعمال الآخرين على الاختيار، ويُحتسب مع نسبة التزام المكتب بالمواعيد.</p>
+    <section className="panel"><h2>قيّم {office || "مقدم الخدمة"}</h2>
+      <p className="note">يساعد تقييمك أصحاب الأعمال الآخرين على الاختيار، ويُحتسب مع نسبة التزام مقدم الخدمة بالمواعيد.</p>
       <form className="rate" onSubmit={save}>
         <div className="field"><label>الاحترافية والتعامل</label>{scale("pro")}</div>
         <div className="field"><label>السرعة</label>{scale("speed")}</div>

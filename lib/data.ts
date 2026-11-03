@@ -4,7 +4,7 @@ import { DAY, num, today } from "./format";
 
 const REMINDER_BUFFER_DAYS = 14;
 
-export type Service = { id: string; title: string; kind: string; agency: string; gov_fee: number; self_days: number; validity_days: number | null; docs: string[] };
+export type Service = { id: string; title: string; kind: string; agency: string; gov_fee: number; self_days: number; validity_days: number | null; docs: string[]; place_kind: import("./places").PlaceKind };
 export type Services = Record<string, Service>;
 export type Stage = { id?: string; idx: number; title: string; planned_days: number; started_at: string | null; done_at: string | null };
 export type Option = { key: string; officeId: string | null; label: string; sub?: string; fee: number; cost: number; days: number;
@@ -73,6 +73,6 @@ export function stageLate(stage?: Stage | null) {
 
 export const sortStages = <T extends Stage>(st?: T[] | null) => (st || []).slice().sort((a, b) => a.idx - b.idx);
 
-export const EVENTS: Record<string, string> = { rated: "قيّم صاحب العمل المكتب", created: "تم إنشاء الطلب", accepted: "قبل المكتب الطلب", declined: "اعتذر المكتب عن الطلب",
+export const EVENTS: Record<string, string> = { rated: "قيّم صاحب العمل مقدم الخدمة", created: "تم إنشاء الطلب", accepted: "قبل مقدم الخدمة الطلب", declined: "اعتذر مقدم الخدمة عن الطلب",
   stage_done: "اكتملت مرحلة", done: "اكتمل الطلب", cancelled: "أُلغي الطلب", note: "ملاحظة", file: "رُفع ملف" };
-export const STATUS: Record<string, [string, string]> = { new: ["", "جديد"], accepted: ["", "قبله المكتب"], in_progress: ["warn", "قيد التنفيذ"], done: ["ok", "تم"], cancelled: ["", "ملغي"] };
+export const STATUS: Record<string, [string, string]> = { new: ["", "جديد"], accepted: ["", "قبله مقدم الخدمة"], in_progress: ["warn", "قيد التنفيذ"], done: ["ok", "تم"], cancelled: ["", "ملغي"] };

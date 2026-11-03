@@ -10,9 +10,9 @@ import { Icon, Loading } from "./ui";
 import { Consent, Login, NotInvited, SetPassword } from "./auth";
 
 const NAV: Record<Role, [string, string, string][]> = {
-  admin: [["/", "الرئيسية", "home"], ["/admin/performance", "أداء المكاتب", "chart"], ["/admin/invites", "الدعوات", "mail"], ["/admin/offices", "المكاتب", "building"], ["/admin/companies", "الشركات", "doc"], ["/admin/users", "المستخدمون", "users"]],
+  admin: [["/", "الرئيسية", "home"], ["/admin/performance", "الأداء", "chart"], ["/admin/invites", "الدعوات", "mail"], ["/admin/offices", "مقدمو الخدمة", "building"], ["/admin/companies", "الشركات", "doc"], ["/admin/requirements", "المتطلبات", "docOk"], ["/admin/users", "المستخدمون", "users"]],
   owner: [["/", "لوحتي", "home"], ["/guide", "مشروع جديد", "pulse"], ["/companies/new", "إضافة شركة", "plus"]],
-  office: [["/", "الطلبات", "list"]],
+  office: [["/", "الطلبات", "list"], ["/office/requirements", "المتطلبات", "docOk"]],
 };
 
 function isCurrent(href: string, path: string) {
@@ -57,12 +57,12 @@ function PreviewBar() {
   return (
     <div className={"preview" + (s.isPreview ? " on" : "")}>
       <span>وضع التجربة:</span>
-      {([["admin", "مدير"], ["owner", "صاحب عمل"], ["office", "مكتب"]] as [Role, string][]).map(([r, label]) => (
+      {([["admin", "مدير"], ["owner", "صاحب عمل"], ["office", "مقدم خدمة"]] as [Role, string][]).map(([r, label]) => (
         <button key={r} type="button" aria-pressed={s.viewAs === r} onClick={() => as(r)}>{label}</button>
       ))}
       {s.viewAs === "office" && (
-        <select aria-label="المكتب" value={s.previewOffice || ""} onChange={(e) => { s.setPreviewOffice(e.target.value || null); router.push("/"); }}>
-          <option value="">اختر المكتب</option>
+        <select aria-label="مقدم الخدمة" value={s.previewOffice || ""} onChange={(e) => { s.setPreviewOffice(e.target.value || null); router.push("/"); }}>
+          <option value="">اختر مقدم الخدمة</option>
           {(offices || []).map((o) => <option key={o.id} value={o.id}>{o.name}{o.is_demo ? " (تجريبي)" : ""}</option>)}
         </select>
       )}
