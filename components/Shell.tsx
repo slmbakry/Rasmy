@@ -19,7 +19,7 @@ const NAV: Record<Role, [string, string, string][]> = {
 function isCurrent(href: string, path: string) {
   if (href === "/") return path === "/" || (/^\/companies\/[^/]+$/.test(path) && path !== "/companies/new");
   if (href === "/files") return path === "/files" || /^\/companies\/[^/]+\/files$/.test(path);
-  if (href === "/actions") return ["/actions", "/guide", "/plan", "/companies/new"].includes(path) || path.startsWith("/renew/");
+  if (href === "/actions") return ["/actions", "/guide", "/plan", "/companies/new"].includes(path) || path.startsWith("/renew/") || path.startsWith("/paths/") || path.startsWith("/start/");
   if (href === "/requests") return path === "/requests" || path.startsWith("/requests/");
   return path === href || path.startsWith(href + "/");
 }

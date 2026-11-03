@@ -9,6 +9,7 @@ import { CompanySwitch, useCompanies, type Company } from "../companies";
 import { applies, missingAnswers, occurrences, type Occurrence, type Profile, type Rule } from "@/lib/obligations";
 import { useState } from "react";
 import ObligationsPreview from "../ObligationsPreview";
+import { PATHS, SOON_PATHS } from "@/lib/paths";
 import { useLoad, useSession } from "../session";
 import { Head, Icon, LoadError, Loading } from "../ui";
 import Files from "./Files";
@@ -197,15 +198,6 @@ function ProfileQuestions({ company, onSaved }: { company: Company; onSaved: () 
 
 // ---------- Actions ----------
 // What the owner can do, starting from what they want rather than the procedure's name.
-const SOON: [string, string, string][] = [
-  ["زيادة رأس المال أو تخفيضه", "التعديل", "يحدد لك نوع الجمعية العامة المطلوبة وخطوات التأشير في السجل"],
-  ["دخول شريك أو خروجه", "التعديل", "بيع الحصص أو زيادة رأس المال، والمستندات لكل حالة"],
-  ["تغيير المدير أو المفوضين بالتوقيع", "التعديل", "الجهة التي تقرر، وورق التأشير"],
-  ["تغيير العنوان أو النشاط", "التعديل", "داخل المحافظة أو خارجها، والتراخيص المتأثرة"],
-  ["اعتماد الميزانية وتوزيع الأرباح", "الالتزامات السنوية", "الجمعية العامة العادية ومواعيدها"],
-  ["إنهاء الشركة", "الإنهاء", "الحل والتصفية أو الشطب، والخطوات بالترتيب"],
-];
-
 export function Actions() {
   const { current } = useCompanies();
   const { data } = useLoad(async () => {
@@ -239,10 +231,15 @@ export function Actions() {
           ) : <p className="empty">أضف مستندات الشركة لتظهر هنا إجراءات تجديدها.</p>}
         </section>
       )}
-      <section className="panel"><h2>التعديل والإنهاء</h2>
-        <p className="note">هذه المسارات قيد الإعداد، وسنجهز لكل منها أسئلة بسيطة توصلك إلى الإجراء الصحيح.</p>
-        <div className="section-grid">{SOON.map(([title, group, sub]) => (
-          <div key={title} className="path-card soon" aria-disabled="true"><span className="chip">{group} · قيد الإعداد</span><b>{title}</b><small className="note">{sub}</small></div>
+      <section className="panel"><h2>التعديل والالتزامات السنوية</h2>
+        <p className="note">كل مسار يبدأ بأسئلة قليلة، ثم يوضح الإجراء ومن يقرره ولماذا، والمستندات والخطوات. يمكنك قراءته قبل أن تكون لديك شركة.</p>
+        <div className="section-grid">{PATHS.map((p) => (
+          <Link key={p.id} className="path-card" href={`/paths/${p.id}`}><span className="chip">{p.group}</span><b>{p.title}</b><small className="note">{p.sub}</small></Link>
+        ))}</div>
+      </section>
+      <section className="panel"><h2>الإنهاء</h2>
+        <div className="section-grid">{SOON_PATHS.map((p) => (
+          <div key={p.title} className="path-card soon" aria-disabled="true"><span className="chip">{p.group} · قيد الإعداد</span><b>{p.title}</b><small className="note">{p.sub}</small></div>
         ))}</div>
       </section>
     </>

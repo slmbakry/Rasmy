@@ -1,5 +1,6 @@
 "use client";
 // Adding an existing company with its documents, adding one document, and choosing who renews a document.
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { sb } from "@/lib/supabase";
@@ -10,6 +11,7 @@ import { Head, Icon, LoadError, Loading, OptionCards } from "../ui";
 import Requirements from "../Requirements";
 import { placeOf } from "@/lib/places";
 import PlaceFields, { placesFrom } from "./PlaceFields";
+import { CompanySwitch, useCompanies } from "../companies";
 
 const docTitle = (t: { title: string }) => t.title.replace("تجديد ", "");
 const FORMS = ["شركة ذات مسئولية محدودة", "شركة الشخص الواحد", "منشأة فردية", "شركة مساهمة", "شركة توصية بسيطة"];
@@ -195,5 +197,55 @@ function triSelect(name: string, label: string, value: boolean | null) {
       <select id={`t-${name}`} name={name} defaultValue={value === true ? "yes" : value === false ? "no" : ""}>
         <option value="">لم يُحدَّد</option><option value="yes">نعم</option><option value="no">لا</option>
       </select></div>
+  );
+}
+
+// Starting any service for the current company: compare doing it yourself
+// with each provider, then create the request.
+export function StartService({ serviceId }: { serviceId: string }) {
+  const router = useRouter();
+  const { uid, isPreview, toast } = useSession();
+  const { list, current } = useCompanies();
+  const [picked, setPicked] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const { data, error } = useLoad(async () => {
+    const s = (await services())[serviceId];
+    return s ? { s, opts: await optionsFor(s.id, isPreview) } : { s: null };
+  }, [serviceId, isPreview]);
+  if (error) return <LoadError />;
+  if (!data || !list) return <Loading />;
+  const { s, opts } = data;
+  if (!s) return <section className="panel"><p>هذه الخدمة غير موجودة.</p></section>;
+  if (!current) return (
+    <section className="panel"><p>لتنفيذ هذا الإجراء ومتابعته، أضف شركتك أولًا.</p>
+      <Link className="btn primary" href="/companies/new">إضافة شركتي</Link></section>
+  );
+  const pick = picked ?? (opts[1]?.key || "self");
+  const o = opts.find((x) => x.key === pick);
+  const go = async () => {
+    setBusy(true);
+    const { data: r, error } = await sb.from("requests").insert({ company_id: current.id, owner_id: uid, service_id: s.id,
+      office_id: o.officeId, quoted_fee: o.cost, quoted_days: o.days, is_demo: isPreview }).select().single();
+    if (error) { setBusy(false); return toast("تعذّر إنشاء الطلب", true); }
+    toast(o.officeId ? "تم إرسال الطلب إلى " + o.label : "تم إنشاء الطلب، ويمكنك متابعة خطواته بنفسك");
+    router.push("/requests/" + r.id);
+  };
+  return (
+    <>
+      <Head back={["/actions", "الإجراءات"]} eyebrow={<>{current.name} <CompanySwitch /></>} title={s.title}>
+        <p>قارن واختر من ينفذ الإجراء، بنفسك أو مع مقدم خدمة.</p>
+      </Head>
+      <div className="split">
+        <section className="panel split-main"><h2>اختر من ينفذ</h2>
+          <OptionCards opts={opts} name="alt" picked={pick} onPick={setPicked} />
+          {opts.length === 1 && <p className="note">لم يحدد أي مقدم خدمة سعرًا لهذه الخدمة بعد، ويمكنك تنفيذها بنفسك ومتابعة خطواتها هنا.</p>}
+          <div className="confirm"><span>{o.label} · <b>{money(o.cost)}</b> · {days(o.days)}</span>
+            <button className="btn primary" type="button" disabled={busy} onClick={go}>تأكيد الطلب</button></div>
+        </section>
+        <aside className="split-side">
+          <section className="panel"><Requirements serviceId={s.id} kind={s.place_kind} place={placeOf(current, s.place_kind)} title="جهّز هذه المستندات" /></section>
+        </aside>
+      </div>
+    </>
   );
 }

@@ -450,3 +450,6 @@ label.btn.disabled { opacity: .5; pointer-events: none; }
 .seg-choice { display: flex; gap: 16px; }
 .seg-choice label { display: flex; gap: 6px; align-items: center; font-weight: 500; }
 .panel.navy-soft { border-color: var(--accent); background: var(--accent-soft); }
+.panel.unsure { border-color: #E9C46A; background: var(--warn-soft); }
+.panel.unsure ul, .sources { margin: 0; padding-inline-start: 18px; display: grid; gap: 6px; }
+.sources a { color: var(--accent-ink); }
