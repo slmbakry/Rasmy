@@ -260,11 +260,11 @@ export function Actions() {
           <Link key={p.id} className="path-card" href={`/paths/${p.id}`}><span className="chip">{p.group}</span><b>{p.title}</b><small className="note">{p.sub}</small></Link>
         ))}</div>
       </section>
-      <section className="panel"><h2>الإنهاء</h2>
+      {SOON_PATHS.length > 0 && <section className="panel"><h2>قيد الإعداد</h2>
         <div className="section-grid">{SOON_PATHS.map((p) => (
           <div key={p.title} className="path-card soon" aria-disabled="true"><span className="chip">{p.group} · قيد الإعداد</span><b>{p.title}</b><small className="note">{p.sub}</small></div>
         ))}</div>
-      </section>
+      </section>}
     </>
   );
 }

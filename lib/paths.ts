@@ -26,6 +26,12 @@ const CREDITORS: Source = { title: "اللائحة التنفيذية لقانو
 const ONE_CHANGE: Source = { title: "مصراوي: هيئة الاستثمار تحدد حالات تغيير الشكل القانوني لشركة الشخص الواحد", url: "https://www.masrawy.com/news/news_economy/details/2018/11/7/1458471/%D9%87%D9%8A%D8%A6%D8%A9-%D8%A7%D9%84%D8%A7%D8%B3%D8%AA%D8%AB%D9%85%D8%A7%D8%B1-3-%D8%AD%D8%A7%D9%84%D8%A7%D8%AA-%D9%84%D8%AA%D8%BA%D9%8A%D9%8A%D8%B1-%D8%A7%D9%84%D8%B4%D9%83%D9%84-%D8%A7%D9%84%D9%82%D8%A7%D9%86%D9%88%D9%86%D9%8A-%D9%85%D9%86-%D9%88%D8%A5%D9%84%D9%89-%D8%B4%D8%B1%D9%83%D8%A9-%D8%A7%D9%84%D8%B4%D8%AE%D8%B5-%D8%A7%D9%84%D9%88%D8%A7%D8%AD%D8%AF" };
 const SOLE_CHANGE: Source = { title: "اقتصاد مصر: هيئة الاستثمار تحدد ضوابط تحويل المنشآت الفردية إلى شركات", url: "https://eqtisadmisr.com/38092/" };
 const REGISTRY: Source = { title: "قانون السجل التجاري رقم ٣٤ لسنة ١٩٧٦", url: "https://lawyeregypt.net/%D9%82%D8%A7%D9%86%D9%88%D9%86-%D8%B1%D9%82%D9%85-34-%D9%84%D8%B3%D9%86%D8%A9-1976-%D9%81%D9%89-%D8%B4%D8%A3%D9%86-%D8%A7%D9%84%D8%B3%D8%AC%D9%84-%D8%A7%D9%84%D8%AA%D8%AC%D8%A7%D8%B1%D9%89/" };
+const JSC_MAJ: Source = { title: "مقارنة مواد قانون الشركات قبل وبعد تعديله، المادة ٧٠", url: "https://hamdyabdelghany.net/compare_159.htm" };
+const LIQ: Source = { title: "صادق خليفة: كيف يمكنك تصفية شركتك في مصر", url: "https://sadanykhalifa.com/ar/single-blog/How-to-Liquidate-your-Company-in-Egypt" };
+const LIQ_LLC: Source = { title: "حل وتصفية الشركة ذات المسئولية المحدودة", url: "https://www.lawforall.info/index.pl/liquidation_and_dissolution_of_llcs" };
+const LIQ_DOCS: Source = { title: "محامي مصر: إجراءات تصفية الشركات", url: "https://lawyeregypt.net/%D8%A5%D8%AC%D8%B1%D8%A7%D8%A1%D8%A7%D8%AA-%D8%AA%D8%B5%D9%81%D9%8A%D8%A9-%D8%A7%D9%84%D8%B4%D8%B1%D9%83%D8%A7%D8%AA/" };
+const INS_END: Source = { title: "الوطن: المستندات المطلوبة لإنهاء الاشتراك التأميني للمنشأة", url: "https://www.elwatannews.com/news/details/5632717" };
+const TAX_STOP: Source = { title: "اليوم السابع: إجراءات توقف الممول عن النشاط", url: "https://www.youm7.com/story/2019/7/17/%D9%84%D8%B5%D8%BA%D8%A7%D8%B1-%D8%A7%D9%84%D9%85%D8%B3%D8%AA%D8%AB%D9%85%D8%B1%D9%8A%D9%86-%D9%88%D8%A7%D9%84%D8%AA%D8%AC%D9%91%D8%A7%D8%B1-%D8%A7%D9%84%D8%B3%D8%AC%D9%84-%D8%A7%D9%84%D8%AA%D8%AC%D8%A7%D8%B1%D9%89-%D8%A3%D9%88%D9%84%D9%89-%D8%AE%D8%B7%D9%88%D8%A7%D8%AA-%D8%A7%D9%84%D9%88%D8%B5%D9%88%D9%84-%D9%84%D8%B3%D9%84%D9%85-%C2%AB%D8%B1%D8%AC%D8%A7%D9%84/4336818" };
 const GAFI: Source = { title: "خدمات تعديلات الشركات، الهيئة العامة للاستثمار", url: "https://www.gafi.gov.eg/Arabic/eServices/Pages/DepartmentService.aspx?DSID=30" };
 
 export const MEETINGS = {
@@ -54,6 +60,8 @@ export function entityOfForm(form?: string | null): string | null {
 
 const ONE_UNSURE = "تطبيق أحكام الشركة ذات المسئولية المحدودة على شركة الشخص الواحد مستنتج من إحالة القانون، وليس من نص خاص بهذا الإجراء.";
 const LLC_DECIDER = { who: "جماعة الشركاء", rule: "الأغلبية العددية للشركاء الحائزة لثلاثة أرباع رأس المال", meeting: "extraordinary" as const };
+// Capital changes, early dissolution, a change of the original purpose and mergers need three quarters (art. 70).
+const JSC_BIG = { who: "الجمعية العامة غير العادية", rule: "ثلاثة أرباع الأسهم الممثلة في الاجتماع", meeting: "extraordinary" as const };
 const ONE_DECIDER = { who: "مالك الشركة", rule: "قرار مكتوب من المالك", meeting: "owner" as const };
 
 export const PATHS: Path[] = [
@@ -78,9 +86,9 @@ export const PATHS: Path[] = [
       if (a.entity === "one") return { title: a.dir === "up" ? "زيادة رأس مال شركة الشخص الواحد" : "تخفيض رأس مال شركة الشخص الواحد",
         why: "رأس المال جزء من عقد الشركة، فتغييره تعديل للعقد يعتمده المالك، ثم تعتمده الهيئة ويُؤشَّر به في السجل التجاري.", decider: ONE_DECIDER, notes, unsure: [...unsure, ONE_UNSURE], serviceId: "capital_change", sources: [LAW, GAFI] };
       if (a.entity === "jsc") return { title: a.dir === "up" ? "زيادة رأس مال شركة المساهمة" : "تخفيض رأس مال شركة المساهمة",
-        why: "تغيير رأس المال تعديل للنظام الأساسي، فيلزمه قرار من الجمعية العامة غير العادية.", decider: { who: "الجمعية العامة غير العادية", rule: "أغلبية ثلثي الأسهم الممثلة في الاجتماع", meeting: "extraordinary" },
+        why: "تغيير رأس المال تعديل للنظام الأساسي، فيلزمه قرار من الجمعية العامة غير العادية.", decider: JSC_BIG,
         notes: [...notes, "لا يصح اجتماع الجمعية غير العادية إلا بحضور مساهمين يملكون نصف رأس المال على الأقل. فإن لم يكتمل يُدعى إلى اجتماع ثانٍ خلال ثلاثين يومًا، ويصح بحضور ربع رأس المال."],
-        unsure, serviceId: "capital_change", sources: a.dir === "down" ? [LAW, CREDITORS] : [LAW] };
+        unsure, serviceId: "capital_change", sources: a.dir === "down" ? [LAW, JSC_MAJ, CREDITORS] : [LAW, JSC_MAJ] };
       return { title: a.dir === "up" ? "زيادة رأس مال الشركة" : "تخفيض رأس مال الشركة",
         why: "لا يجوز تعديل عقد الشركة ذات المسئولية المحدودة ولا زيادة رأس مالها أو تخفيضه إلا بموافقة الأغلبية العددية للشركاء الحائزة لثلاثة أرباع رأس المال.",
         decider: LLC_DECIDER, notes, unsure, serviceId: "capital_change", sources: a.dir === "down" ? [LAW, REGS, CREDITORS, GAFI] : [LAW, REGS, GAFI] };
@@ -108,7 +116,7 @@ export const PATHS: Path[] = [
         ] : [],
         unsure: [ONE_UNSURE], serviceId: "share_transfer", sources: a.move === "in" ? [LAW, ONE_CHANGE] : [LAW] };
       if (a.in_how === "capital") return { title: "دخول شريك بزيادة رأس المال", why: "الشريك الجديد يدفع حصة جديدة فيزيد رأس المال، فيمر الإجراء بقرار زيادة رأس المال ثم تعديل العقد.",
-        decider: a.entity === "jsc" ? { who: "الجمعية العامة غير العادية", rule: "أغلبية ثلثي الأسهم الممثلة في الاجتماع", meeting: "extraordinary" } : LLC_DECIDER,
+        decider: a.entity === "jsc" ? JSC_BIG : LLC_DECIDER,
         notes: ["المستندات هنا هي مستندات زيادة رأس المال، ويُضاف الشريك الجديد في عقد التعديل."], unsure: [], serviceId: "capital_change", link: { href: "/paths/capital", label: "تفاصيل زيادة رأس المال" }, sources: [LAW] };
       if (a.entity === "jsc") return { title: "انتقال الأسهم في شركة المساهمة", why: "تنتقل الأسهم وفق قواعد تداولها والنظام الأساسي للشركة، ولا يطبق حق الاسترداد الخاص بالشركات ذات المسئولية المحدودة بالطريقة نفسها.",
         notes: [], unsure: ["لم نتحقق بعد من قيود نقل الأسهم في شركات المساهمة غير المقيدة في البورصة."], serviceId: "share_transfer", sources: [LAW] };
@@ -190,8 +198,55 @@ export const PATHS: Path[] = [
         unsure: ["لم نتحقق بعد من الأغلبية المطلوبة لاعتماد الميزانية إذا لم يحددها عقد الشركة."], serviceId: "accounts_approval", sources: [REGS, LAW] };
     },
   },
+  {
+    id: "closure", group: "الإنهاء", title: "إنهاء الشركة", sub: "الحل والتصفية للشركات، والشطب للمنشأة الفردية، والخطوات بالترتيب",
+    questions: [ENTITY,
+      { id: "state", q: "ما حال الشركة الآن؟", when: (a) => a.entity !== "sole", options: [
+        ["clean", "لا ديون ولا أصول ولا موظفون", "لم تبدأ العمل، أو توقفت وسوّت كل شيء"],
+        ["open", "عليها ديون أو لها أصول أو موظفون", "يلزم تحصيل الحقوق وسداد الديون أولًا"],
+      ] },
+    ],
+    outcome: (a) => {
+      const closing = [
+        "تُغلق الشركة ملفها لدى الهيئة القومية للتأمين الاجتماعي بالاستمارة رقم ٦ التي تفيد انتهاء النشاط، بعد سداد كل الاشتراكات.",
+        "تحصل الشركة على مخالصة من مصلحة الضرائب قبل طلب الشطب، وأي التزام ضريبي غير مسدد يعطّل الشطب.",
+      ];
+      const unsure = [
+        "لم نجد في القانون مدة ثابتة للتصفية، والمدة الشائعة عمليًا من ستة أشهر إلى ثمانية عشر شهرًا.",
+        "لم نتحقق بعد من خطوات إلغاء التسجيل في ضريبة القيمة المضافة.",
+      ];
+      if (a.entity === "sole") return { title: "شطب المنشأة الفردية", why: "المنشأة الفردية ليست شخصًا مستقلًا عن صاحبها، فلا تحتاج قرار حل ولا مصفيًا. يكفي إخطار الجهات بالتوقف وتسوية الالتزامات ثم شطب القيد.",
+        decider: { who: "صاحب المنشأة", rule: "طلب منه بالتوقف والشطب", meeting: "none" },
+        notes: [
+          "يقدم صاحب المنشأة طلبًا كتابيًا لمأمورية الضرائب يوضح فيه تاريخ التوقف والأنشطة التي توقف عنها.",
+          "إذا كان للمنشأة موظفون مؤمَّن عليهم، يُغلق ملفها في التأمينات بالاستمارة رقم ٦ بعد سداد الاشتراكات.",
+          "بعد المخالصة من الضرائب والتأمينات يُطلب شطب القيد من مكتب السجل التجاري.",
+        ],
+        unsure: ["لم نتحقق بعد من المدة القانونية لإخطار مأمورية الضرائب بالتوقف.", unsure[1]], serviceId: "sole_closure", sources: [TAX_STOP, INS_END, REGISTRY] };
+      const notes = [
+        "يحدد القرار المصفي ومهامه ومدة التصفية وأجره. ويجوز أن يكون المصفي من الشركاء أو من غيرهم.",
+        "يُقيَّد قرار التصفية في السجل التجاري ويُنشر، ولا يُحتج بالتصفية على الغير إلا من تاريخ قيدها.",
+        "خلال التصفية تبقى للشركة شخصيتها بالقدر اللازم للتصفية فقط، ويُضاف إلى اسمها أنها تحت التصفية.",
+        ...(a.state === "open" ? [
+          "يجرد المصفي أصول الشركة وحقوقها وديونها، ثم يحصّل الحقوق ويسدد الديون، ويوزع ما يبقى على الشركاء بحسب حصصهم.",
+        ] : [
+          "إذا لم تكن على الشركة ديون ولا لها أصول، تكون أعمال التصفية قصيرة، لكن الخطوات الرسمية نفسها لازمة.",
+        ]),
+        "يقدم المصفي حسابًا ختاميًا، وتنتهي التصفية باعتماده، ثم يُشهر انتهاؤها ويُطلب شطب القيد من السجل التجاري.",
+        ...closing,
+        "تُحفظ دفاتر الشركة ومستنداتها عشر سنوات بعد الشطب.",
+      ];
+      if (a.entity === "one") return { title: "حل شركة الشخص الواحد وتصفيتها", why: "المالك وحده يقرر حل الشركة ووضعها تحت التصفية، ثم تمر بخطوات التصفية نفسها حتى شطب القيد.",
+        decider: ONE_DECIDER, notes, unsure: [ONE_UNSURE, ...unsure], serviceId: "liquidation", sources: [LIQ, LIQ_DOCS, INS_END] };
+      if (a.entity === "jsc") return { title: "حل شركة المساهمة وتصفيتها", why: "حل الشركة قبل موعدها قرار يغيّر وجودها نفسه، فيلزمه قرار من الجمعية العامة غير العادية بأغلبية مشددة.",
+        decider: JSC_BIG,
+        notes: ["لا يصح اجتماع الجمعية غير العادية إلا بحضور مساهمين يملكون نصف رأس المال على الأقل. فإن لم يكتمل يُدعى إلى اجتماع ثانٍ خلال ثلاثين يومًا، ويصح بحضور ربع رأس المال.", ...notes],
+        unsure, serviceId: "liquidation", sources: [LAW, JSC_MAJ, LIQ, LIQ_DOCS, INS_END] };
+      return { title: "حل الشركة وتصفيتها", why: "إنهاء الشركة ذات المسئولية المحدودة يمر بمرحلتين: قرار من الشركاء بالحل ووضع الشركة تحت التصفية، ثم تصفية يقوم بها مصفٍ حتى شطب القيد.",
+        decider: { who: "جماعة الشركاء", rule: "الأغلبية التي يحددها عقد الشركة لحلها قبل موعدها", meeting: "extraordinary" },
+        notes, unsure: ["لم نتحقق بعد من الأغلبية التي يحددها القانون لقرار الحل إذا لم يذكرها عقد الشركة.", ...unsure], serviceId: "liquidation", sources: [LIQ_LLC, LIQ, LIQ_DOCS, INS_END] };
+    },
+  },
 ];
 
-export const SOON_PATHS = [
-  { title: "إنهاء الشركة", group: "الإنهاء", sub: "الحل والتصفية أو الشطب، والخطوات بالترتيب" },
-];
+export const SOON_PATHS: { title: string; group: string; sub: string }[] = [];
