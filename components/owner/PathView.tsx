@@ -33,6 +33,7 @@ export default function PathView({ id }: { id: string }) {
     if (!outcome?.serviceId) return null;
     const svcs = await services();
     const s = svcs[outcome.serviceId];
+    if (!s) return null;
     const opts = await optionsFor(s.id, isPreview);
     return { s, cheapest: Math.min(...opts.map((o) => o.cost)), offices: opts.length - 1 };
   }, [outcome?.serviceId, isPreview]);
@@ -83,7 +84,7 @@ export default function PathView({ id }: { id: string }) {
               <ul className="checklist">{o.notes.map((n) => <li key={n}><Icon name="check" size={16} />{n}</li>)}</ul>
             </section>
           )}
-          {o.serviceId && (error ? <LoadError /> : !data ? <Loading /> : (
+          {o.serviceId && (error ? <LoadError /> : data === undefined ? <Loading /> : data === null ? null : (
             <section className="panel"><h2>الخطوات</h2>
               <div className="track">{(data.s as any).stages?.map((st, i) => (
                 <div key={i} className="tr"><span className="dot" aria-hidden="true" /><div><p>{st.title}</p><small className="note">المدة المتوقعة {days(st.days)}</small></div></div>
