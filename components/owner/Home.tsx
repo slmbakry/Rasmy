@@ -8,6 +8,7 @@ import { docStatus, services, sortStages, stageLate } from "@/lib/data";
 import { pathFor } from "@/lib/storage";
 import { fmtSize } from "@/lib/files";
 import { applies, occurrences, type Rule } from "@/lib/obligations";
+import { activitiesOf } from "@/lib/activities";
 import { useLoad, useSession } from "../session";
 import { Avatar, Head, Icon, Kpi, LoadError, Loading } from "../ui";
 
@@ -21,7 +22,7 @@ export default function OwnerHome({ companyId }: { companyId?: string }) {
     const { data: companies } = await sb.from("companies").select("*").eq("owner_id", uid).neq("status", "closed").order("created_at");
     if (!companies?.length) return { svcs, companies: [] };
     const co = companies.find((c) => c.id === companyId) || companies[0];
-    const [{ data: docs }, { data: reqs }, { data: notes }, { data: used }, { data: plan }, { count: fileCount }, { data: rules }, { data: done }] = await Promise.all([
+    const [{ data: docs }, { data: reqs }, { data: notes }, { data: used }, { data: plan }, { count: fileCount }, { data: rules }, { data: done }, { data: actStatus }] = await Promise.all([
       sb.from("documents").select("*").eq("company_id", co.id).order("expires_on", { nullsFirst: false }),
       sb.from("requests").select("*, offices(name), request_stages(idx,title,planned_days,started_at,done_at)").eq("company_id", co.id).order("created_at", { ascending: false }),
       sb.from("notifications").select("*").eq("user_id", uid).order("created_at", { ascending: false }).limit(4),
@@ -30,6 +31,7 @@ export default function OwnerHome({ companyId }: { companyId?: string }) {
       sb.from("company_files").select("id", { count: "exact", head: true }).eq("company_id", co.id),
       sb.from("obligation_rules").select("*").eq("active", true),
       sb.from("obligation_done").select("rule_id,period").eq("company_id", co.id),
+      sb.from("activity_status").select("activity_id").eq("company_id", co.id),
     ]);
     // Recurring obligations that are overdue or due within a week.
     const doneSet = new Set((done || []).map((d) => `${d.rule_id}|${d.period}`));
@@ -38,12 +40,12 @@ export default function OwnerHome({ companyId }: { companyId?: string }) {
     const doneWithOffice = (reqs || []).filter((r) => r.status === "done" && r.office_id);
     const { data: rated } = doneWithOffice.length ? await sb.from("ratings").select("request_id").in("request_id", doneWithOffice.map((r) => r.id)) : { data: [] };
     const ratedIds = new Set((rated || []).map((x) => x.request_id));
-    return { svcs, companies, co, docs: docs || [], reqs: reqs || [], notes: notes || [], used: Number(used || 0), plan, fileCount: fileCount || 0, soon, askProfile: co.vat_registered === null || co.has_employees === null, toRate: doneWithOffice.find((r) => !ratedIds.has(r.id)) };
+    return { svcs, companies, co, docs: docs || [], reqs: reqs || [], notes: notes || [], used: Number(used || 0), plan, fileCount: fileCount || 0, soon, actDone: new Set((actStatus || []).map((x) => x.activity_id)), askProfile: co.vat_registered === null || co.has_employees === null, toRate: doneWithOffice.find((r) => !ratedIds.has(r.id)) };
   }, [uid, companyId]);
 
   if (error) return <LoadError />;
   if (!data) return <Loading />;
-  const { svcs, companies, co, docs, reqs, notes, toRate, used, plan, fileCount, soon, askProfile } = data;
+  const { svcs, companies, co, docs, reqs, notes, toRate, used, plan, fileCount, soon, askProfile, actDone } = data;
 
   if (!companies.length) return (
     <>
@@ -81,6 +83,12 @@ export default function OwnerHome({ companyId }: { companyId?: string }) {
   if (soon.length) todo.unshift({ tone: late.length ? "bad" : "warn", ic: "clock",
     title: late.length ? `${num(late.length)} من الالتزامات الدورية فات موعدها` : `${num(soon.length)} من الالتزامات الدورية خلال أسبوع`,
     sub: soon.slice(0, 2).map((o) => o.rule.title).join("، "), href: "/obligations", cta: "عرض الالتزامات" });
+  // Licensed activities the owner has not dealt with yet.
+  activitiesOf(co.activities).filter((a) => !actDone.has(a.id) && !reqs.some((r) => r.service_id === a.serviceId && r.status !== "cancelled"))
+    .forEach((a) => todo.push({ tone: "warn", ic: "doc", title: `نشاط ${a.title} يحتاج ترخيصًا خاصًا`,
+      sub: `من ${a.authority}. اعرف الخطوات، أو أخبرنا إن كان لدى الشركة الترخيص`, href: `/activities/${a.id}`, cta: "اعرف المطلوب" }));
+  if (co.activities === null) todo.push({ tone: "info", ic: "list", title: "حدّد أنشطة الشركة",
+    sub: "لنعرف إن كان نشاطك يحتاج ترخيصًا خاصًا غير السجل التجاري والبطاقة الضريبية", href: `/companies/${co.id}/edit#activities`, cta: "حدّد الأنشطة", soft: true });
   if (askProfile) todo.push({ tone: "info", ic: "list", title: "أكمل بيانات الشركة لنحسب التزاماتها",
     sub: "ثلاثة أسئلة عن القيمة المضافة والموظفين والنظام الضريبي", href: "/obligations", cta: "أكمل البيانات", soft: true });
   const ring = list.length ? Math.round((healthy / list.length) * 163) : 0;

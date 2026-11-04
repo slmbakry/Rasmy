@@ -254,7 +254,7 @@ export function Offices() {
   );
 }
 
-const KINDS = { founding: "التأسيس", compliance: "الالتزامات الدورية", renewal: "التجديدات", amendment: "التعديلات", closure: "الإنهاء" };
+const KINDS = { founding: "التأسيس", compliance: "الالتزامات الدورية", renewal: "التجديدات", amendment: "التعديلات", closure: "الإنهاء", license: "التراخيص" };
 
 export function Prices({ officeId }: { officeId: string }) {
   const { toast } = useSession();

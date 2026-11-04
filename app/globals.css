@@ -459,3 +459,6 @@ label.btn.disabled { opacity: .5; pointer-events: none; }
 .brand-word { display: inline-flex; align-items: center; gap: 0.25em; white-space: nowrap; font-family: var(--display); font-weight: 700; color: var(--accent-ink); }
 .brand-word svg { width: 0.95em; height: 0.95em; flex: none; }
 .eyebrow .brand-word { color: inherit; }
+.act-pick { display: grid; gap: 12px; }
+.act-pick .field input { width: 100%; }
+.act-none { border-style: dashed; }

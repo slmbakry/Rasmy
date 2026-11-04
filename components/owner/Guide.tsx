@@ -9,6 +9,8 @@ import { useLoad, useSession } from "../session";
 import { Head, Icon, Kpi, LoadError, Loading, OptionCards } from "../ui";
 import Requirements from "../Requirements";
 import ObligationsPreview from "../ObligationsPreview";
+import ActivityPicker from "../ActivityPicker";
+import { activitiesOf, requiredForm } from "@/lib/activities";
 
 const QUESTIONS = [
   { key: "partners", q: "هل ستبدأ وحدك أم مع شركاء؟", opts: [["alone", "وحدي", "المشروع ملكي بالكامل"], ["many", "معي شريك أو أكثر", "اثنان أو أكثر في الملكية"]] },
@@ -19,21 +21,26 @@ const QUESTIONS = [
 const ANSWER_ICONS: Record<string, string> = { alone: "person", many: "users", shop: "building", online: "pulse", factory: "building", s: "chart", m: "chart", l: "chart", yes: "users", no: "person" };
 
 // Kept while the owner moves between the questions and the plan.
-const guide: { answers: Record<string, string>; qi: number; choices: Record<string, string>; open: string | null; name: string } =
-  { answers: {}, qi: 0, choices: {}, open: null, name: "" };
+const guide: { answers: Record<string, string>; qi: number; choices: Record<string, string>; open: string | null; name: string; activities: string[] | null } =
+  { answers: {}, qi: 0, choices: {}, open: null, name: "", activities: null };
+const STEPS = QUESTIONS.length + 1; // the questions, then the licensed activities
 
 function entityFor(a: Record<string, string>) {
+  const forced = requiredForm(guide.activities);
+  if (forced) return { name: forced.form, why: `لأن نشاط ${forced.title} يشترط قانونًا أن تكون الشركة ${forced.form}.`, company: true };
   if (a.partners === "many") return { name: "شركة ذات مسئولية محدودة", why: "لأن لديك شركاء، وتكون المسؤولية في حدود رأس المال.", company: true };
   if (a.turnover === "s" && a.activity !== "factory") return { name: "منشأة فردية", why: "الأبسط والأسرع والأقل تكلفة في البداية، لكن مسؤوليتك عن الديون غير محدودة.", company: false };
   return { name: "شركة الشخص الواحد", why: "تفصل ذمتك المالية عن ذمة الشركة، وتناسب حجم نشاطك.", company: true };
 }
 function planSteps(a: Record<string, string>) {
-  const list: string[] = [];
+  const acts = activitiesOf(guide.activities);
+  const list: string[] = acts.filter((x) => x.timing === "founding").map((x) => x.serviceId);
   if (entityFor(a).company) list.push("name_reservation", "incorporation");
   list.push("commercial_register", "tax_card");
   if (a.turnover !== "s") list.push("vat_registration");
   if (a.activity === "shop") list.push("shop_license");
   if (a.staff === "yes") list.push("social_insurance");
+  list.push(...acts.filter((x) => x.timing === "operating").map((x) => x.serviceId));
   list.push("bank_account");
   return list;
 }
@@ -41,16 +48,22 @@ function planSteps(a: Record<string, string>) {
 export function Guide() {
   const router = useRouter();
   const [, redraw] = useState(0);
-  const Q = QUESTIONS[guide.qi], val = guide.answers[Q.key];
   const set = (fn: () => void) => { fn(); redraw((x) => x + 1); };
+  const last = guide.qi === STEPS - 1;
+  const Q = QUESTIONS[guide.qi], val = last ? (guide.activities === null ? "" : "set") : guide.answers[Q.key];
   return (
     <>
       <Head eyebrow="الدليل" title="أسئلة قليلة، ثم تصبح خريطتك جاهزة"><p>سنقترح عليك الكيان المناسب، والخطوات بالترتيب، وتكلفة كل خطوة ومدتها.</p></Head>
       <section className="panel quiz">
         <div className="row between">
-          <span className="eyebrow">سؤال {num(guide.qi + 1)} من {num(QUESTIONS.length)}</span>
-          <div className="progress" aria-hidden="true">{QUESTIONS.map((_, i) => <span key={i} className={i <= guide.qi ? "on" : ""} />)}</div>
+          <span className="eyebrow">سؤال {num(guide.qi + 1)} من {num(STEPS)}</span>
+          <div className="progress" aria-hidden="true">{Array.from({ length: STEPS }, (_, i) => <span key={i} className={i <= guide.qi ? "on" : ""} />)}</div>
         </div>
+        {last ? <>
+          <h2 id="q-title">هل نشاطك من الأنشطة التي تحتاج ترخيصًا خاصًا؟</h2>
+          <p className="note">هذه الأنشطة يلزمها ترخيص أو قيد لدى جهة مختصة، وبعضها يحدد شكل الشركة أو رأس مالها. اختر ما ينطبق عليك.</p>
+          <ActivityPicker value={guide.activities} onChange={(v) => set(() => { guide.activities = v; })} />
+        </> : <>
         <h2 id="q-title">{Q.q}</h2>
         <div className="opts" role="radiogroup" aria-labelledby="q-title">
           {Q.opts.map(([v, b, s]) => (
@@ -60,9 +73,10 @@ export function Guide() {
             </label>
           ))}
         </div>
+        </>}
         <div className="row">
-          <button className="btn primary" type="button" disabled={!val} onClick={() => guide.qi < QUESTIONS.length - 1 ? set(() => { guide.qi++; }) : router.push("/plan")}>
-            {guide.qi === QUESTIONS.length - 1 ? "اعرض خريطتي" : "التالي"}
+          <button className="btn primary" type="button" disabled={!val} onClick={() => !last ? set(() => { guide.qi++; }) : router.push("/plan")}>
+            {last ? "اعرض خريطتي" : "التالي"}
           </button>
           {guide.qi > 0 && <button className="btn" type="button" onClick={() => set(() => { guide.qi--; })}>رجوع</button>}
         </div>
@@ -74,7 +88,7 @@ export function Guide() {
 export function Plan() {
   const router = useRouter();
   const { uid, isPreview, toast } = useSession();
-  const missing = QUESTIONS.some((q) => !guide.answers[q.key]);
+  const missing = QUESTIONS.some((q) => !guide.answers[q.key]) || guide.activities === null;
   const [, redraw] = useState(0);
   const [busy, setBusy] = useState(false);
   useEffect(() => { if (missing) router.replace("/guide"); }, [missing, router]);
@@ -99,12 +113,12 @@ export function Plan() {
     const name = guide.name.trim();
     if (!name) return toast("اكتب اسم مشروعك أولًا", true);
     setBusy(true);
-    const { data: co, error } = await sb.from("companies").insert({ owner_id: uid, name, legal_form: e.name, status: "founding", is_demo: isPreview }).select().single();
+    const { data: co, error } = await sb.from("companies").insert({ owner_id: uid, name, legal_form: e.name, status: "founding", is_demo: isPreview, activities: guide.activities }).select().single();
     if (error) { setBusy(false); return toast("تعذّر تسجيل المشروع", true); }
     const rows = list.map((id) => { const o = pick(id); return { company_id: co.id, owner_id: uid, service_id: id, office_id: o.officeId, quoted_fee: o.cost, quoted_days: o.days, is_demo: isPreview }; });
     const { error: e2 } = await sb.from("requests").insert(rows);
     if (e2) { setBusy(false); return toast("تم تسجيل المشروع، لكن تعذّر إنشاء الطلبات. حاول مرة أخرى من الخريطة", true); }
-    Object.assign(guide, { answers: {}, qi: 0, choices: {}, name: "", open: null });
+    Object.assign(guide, { answers: {}, qi: 0, choices: {}, name: "", open: null, activities: null });
     toast("تم إنشاء طلبات التأسيس، ويمكنك متابعتها من لوحتك");
     router.push("/companies/" + co.id);
   };
@@ -116,6 +130,7 @@ export function Plan() {
         <div className="chips">
           {a.turnover !== "l" && <span className="chip on-navy">مؤهل للنظام الضريبي المبسط</span>}
           {a.turnover !== "s" && <span className="chip on-navy">مطلوب تسجيل القيمة المضافة</span>}
+          {activitiesOf(guide.activities).map((x) => <span key={x.id} className="chip on-navy">{x.title}: يحتاج ترخيصًا من {x.authority}</span>)}
         </div>
       </Head>
       <div className="kpis">

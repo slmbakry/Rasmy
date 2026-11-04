@@ -2,6 +2,8 @@
 // procedure, who decides it and by what majority, its steps and documents.
 // Every legal fact carries its source; what the sources leave open is marked.
 
+import { ACTIVITIES, activityById } from "./activities";
+
 export type Answers = Record<string, string>;
 export type Question = { id: string; q: string; options: [string, string, string?][]; when?: (a: Answers) => boolean };
 export type Source = { title: string; url: string };
@@ -172,19 +174,25 @@ export const PATHS: Path[] = [
     questions: [ENTITY,
       { id: "what", q: "ماذا تريد أن تغيّر؟", options: [["address", "مقر الشركة"], ["activity", "النشاط", "إضافة نشاط أو تعديله"]] },
       { id: "where", q: "أين المقر الجديد؟", when: (a) => a.what === "address", options: [["same", "في نفس المحافظة"], ["other", "في محافظة أخرى"]] },
-      { id: "licensed", q: "هل النشاط الجديد يحتاج ترخيصًا من جهة مختصة؟", when: (a) => a.what === "activity", options: [["yes", "نعم", "مثل الأغذية والصحة والتعليم والسياحة"], ["no", "لا"], ["unsure", "لا أعرف"]] },
+      { id: "licensed", q: "ما النشاط الجديد؟", when: (a) => a.what === "activity", options: [
+        ...ACTIVITIES.map((x) => [x.id, x.title, x.hint] as [string, string, string]),
+        ["no", "نشاط آخر", "لا يحتاج ترخيصًا خاصًا"], ["unsure", "لا أعرف", "سنعرض لك الأنشطة التي تحتاج ترخيصًا"],
+      ] },
     ],
     outcome: (a) => {
       const sole = a.entity === "sole";
       if (a.what === "activity") {
         const notes = ["تعتمد الهيئة العامة للاستثمار التعديل، ثم يُؤشَّر به في مكتب السجل التجاري المقيدة به الشركة، وتُحدَّث بيانات الشركة لدى مأمورية الضرائب."];
-        if (a.licensed !== "no") notes.push("الأنشطة التي تحتاج ترخيصًا خاصًا تلزمها موافقة الجهة المختصة قبل مزاولتها.");
+        const lic = activityById(a.licensed);
+        if (lic) notes.push(`نشاط ${lic.title} يحتاج بعد تعديل السجل التجاري ترخيصًا أو قيدًا من ${lic.authority} قبل مزاولته.`);
+        if (a.licensed === "unsure") notes.push("بعض الأنشطة تحتاج ترخيصًا أو قيدًا لدى جهة مختصة قبل مزاولتها، فراجع قائمة الأنشطة قبل البدء.");
         return { title: sole ? "تعديل نشاط المنشأة" : "إضافة نشاط أو تعديله",
           why: sole ? "يُعدَّل نشاط المنشأة الفردية في السجل التجاري بطلب من صاحبها." : "إضافة نشاط تعني تعديل غرض الشركة في عقدها، لا مجرد تحديث في السجل، فيلزمها قرار غير عادي.",
           decider: sole ? { who: "صاحب المنشأة", rule: "طلب تعديل في السجل التجاري", meeting: "none" } : a.entity === "one" ? ONE_DECIDER
             : a.entity === "jsc" ? { ...JSC_EGM, rule: "ثلثا الأسهم الممثلة في الاجتماع، وثلاثة أرباعها إذا غيّر القرار الغرض الأصلي للشركة" } : LLC_DECIDER,
           notes: a.entity === "jsc" ? [...notes, EGM_QUORUM] : notes,
           unsure: sole ? ["لم نتحقق بعد من مستندات تعديل نشاط المنشأة الفردية."] : a.entity === "one" ? [ONE_UNSURE] : [],
+          link: lic ? { href: `/activities/${lic.id}`, label: `خطوات ترخيص ${lic.title}` } : a.licensed === "unsure" ? { href: "/activities", label: "الأنشطة التي تحتاج ترخيصًا" } : undefined,
           serviceId: "activity_change", sources: a.entity === "jsc" ? [ACTIVITY, LAW, JSC_MAJ, GAFI] : [ACTIVITY, GAFI] };
       }
       const notes = ["يلزم عقد إيجار ثابت التاريخ على الأقل أو مستند ملكية موثق للمقر الجديد."];

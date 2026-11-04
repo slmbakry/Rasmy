@@ -12,6 +12,7 @@ import Requirements from "../Requirements";
 import { placeOf } from "@/lib/places";
 import PlaceFields, { placesFrom } from "./PlaceFields";
 import { CompanySwitch, useCompanies } from "../companies";
+import ActivityPicker from "../ActivityPicker";
 
 const docTitle = (t: { title: string }) => t.title.replace("تجديد ", "");
 const FORMS = ["شركة ذات مسئولية محدودة", "شركة الشخص الواحد", "منشأة فردية", "شركة مساهمة", "شركة توصية بسيطة"];
@@ -23,6 +24,7 @@ export function CompanyNew() {
   const { uid, isPreview, toast } = useSession();
   const { data: types, error } = useLoad(renewals, []);
   const [busy, setBusy] = useState(false);
+  const [acts, setActs] = useState<string[] | null>(null);
   if (error) return <LoadError />;
   if (!types) return <Loading />;
 
@@ -30,7 +32,7 @@ export function CompanyNew() {
     ev.preventDefault();
     const f = new FormData(ev.currentTarget);
     setBusy(true);
-    const { data: co, error } = await sb.from("companies").insert({ owner_id: uid, name: String(f.get("name")).trim(), legal_form: f.get("form"), is_demo: isPreview, ...placesFrom(f) }).select().single();
+    const { data: co, error } = await sb.from("companies").insert({ owner_id: uid, name: String(f.get("name")).trim(), legal_form: f.get("form"), is_demo: isPreview, activities: acts, ...placesFrom(f) }).select().single();
     if (error) { setBusy(false); return toast("تعذّر حفظ الشركة، حاول مرة أخرى", true); }
     const docs = types.map((t) => ({ t, v: String(f.get("exp-" + t.id) || "") })).filter((x) => x.v)
       .map(({ t, v }) => ({ company_id: co.id, service_id: t.id, title: docTitle(t), expires_on: v }));
@@ -49,6 +51,11 @@ export function CompanyNew() {
             <div className="field"><label htmlFor="c-form">الشكل القانوني</label><select id="c-form" name="form">{FORMS.map((x) => <option key={x}>{x}</option>)}</select></div>
           </div>
           <PlaceFields />
+        </section>
+        <section className="panel">
+          <h2>نشاط الشركة</h2>
+          <p className="note">بعض الأنشطة تحتاج ترخيصًا أو قيدًا خاصًا. اختر ما ينطبق على شركتك، وسننبهك إلى المطلوب لكل نشاط.</p>
+          <ActivityPicker value={acts} onChange={setActs} />
         </section>
         <section className="panel">
           <div className="row between"><h2>المستندات</h2><span className="note">اترك التاريخ فارغًا إذا لم يكن لدى الشركة هذا المستند</span></div>
@@ -147,8 +154,9 @@ export function CompanyEdit({ companyId }: { companyId: string }) {
   const router = useRouter();
   const { toast } = useSession();
   const [busy, setBusy] = useState(false);
+  const [acts, setActs] = useState<string[] | null | undefined>(undefined);
   const { data: co, error } = useLoad(async () => {
-    const { data } = await sb.from("companies").select("id,name,legal_form,governorate,registry_office,tax_office,vat_registered,has_employees,simplified_tax,fiscal_year_end").eq("id", companyId).maybeSingle();
+    const { data } = await sb.from("companies").select("id,name,legal_form,governorate,registry_office,tax_office,vat_registered,has_employees,simplified_tax,fiscal_year_end,activities").eq("id", companyId).maybeSingle();
     return data;
   }, [companyId]);
   if (error) return <LoadError />;
@@ -159,7 +167,7 @@ export function CompanyEdit({ companyId }: { companyId: string }) {
     const f = new FormData(ev.currentTarget);
     setBusy(true);
     const { error } = await sb.from("companies").update({ name: String(f.get("name")).trim(), legal_form: f.get("form"), ...placesFrom(f),
-      vat_registered: tri(f.get("vat")), has_employees: tri(f.get("emp")), simplified_tax: tri(f.get("simple")), fiscal_year_end: Number(f.get("fy")) || 12 }).eq("id", companyId);
+      vat_registered: tri(f.get("vat")), has_employees: tri(f.get("emp")), simplified_tax: tri(f.get("simple")), fiscal_year_end: Number(f.get("fy")) || 12, activities: acts === undefined ? co.activities : acts }).eq("id", companyId);
     setBusy(false);
     if (error) return toast("تعذّر حفظ بيانات الشركة", true);
     toast("تم حفظ بيانات الشركة"); router.push("/companies/" + companyId);
@@ -183,6 +191,9 @@ export function CompanyEdit({ companyId }: { companyId: string }) {
             <select id="fy" name="fy" defaultValue={co.fiscal_year_end || 12}>{MONTH_NAMES.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}</select></div>
         </div>
         <small className="note">هذه الإجابات تحدد الإقرارات والاشتراكات التي تظهر في صفحة الالتزامات.</small>
+        <h3 className="sub" id="activities">نشاط الشركة</h3>
+        <p className="note">بعض الأنشطة تحتاج ترخيصًا أو قيدًا خاصًا. اختر ما ينطبق على شركتك.</p>
+        <ActivityPicker value={acts === undefined ? co.activities ?? null : acts} onChange={setActs} />
         <button className="btn primary" type="submit" disabled={busy}>حفظ</button>
       </form>
     </>
