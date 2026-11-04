@@ -260,6 +260,10 @@ export function Actions() {
           <Link key={p.id} className="path-card" href={`/paths/${p.id}`}><span className="chip">{p.group}</span><b>{p.title}</b><small className="note">{p.sub}</small></Link>
         ))}</div>
       </section>
+      <section className="panel"><h2>دليل أنشطة السجل التجاري</h2>
+        <p className="note">ابحث عن نشاطك كما يُكتب في السجل، واعرف الأنشطة التي يُطلب إضافتها معه عادة.</p>
+        <Link className="btn" href="/registry">افتح الدليل</Link>
+      </section>
       <section className="panel"><h2>الأنشطة التي تحتاج ترخيصًا خاصًا</h2>
         <p className="note">مثل الاستيراد والتصدير والسمسرة العقارية والمقاولات والأغذية. لكل نشاط الجهة المختصة، ومتى تبدأ، والمستندات والخطوات.</p>
         <Link className="btn" href="/activities">عرض الأنشطة والتراخيص</Link>

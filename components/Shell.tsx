@@ -14,13 +14,13 @@ import FeedbackButton from "./Feedback";
 const NAV: Record<Role, [string, string, string][]> = {
   admin: [["/", "الرئيسية", "home"], ["/admin/performance", "الأداء", "chart"], ["/admin/invites", "الدعوات", "mail"], ["/admin/offices", "مقدمو الخدمة", "building"], ["/admin/companies", "الشركات", "doc"], ["/admin/requirements", "المتطلبات", "docOk"], ["/admin/feedback", "الملاحظات", "mail"], ["/admin/users", "المستخدمون", "users"]],
   owner: [["/", "الرئيسية", "home"], ["/obligations", "الالتزامات", "clock"], ["/actions", "الإجراءات", "pulse"], ["/files", "ملف الشركة", "doc"], ["/requests", "طلباتي", "list"]],
-  office: [["/", "الطلبات", "list"], ["/office/requirements", "المتطلبات", "docOk"]],
+  office: [["/", "الطلبات", "list"], ["/office/requirements", "المتطلبات", "docOk"], ["/registry", "دليل الأنشطة", "pulse"]],
 };
 
 function isCurrent(href: string, path: string) {
   if (href === "/") return path === "/" || (/^\/companies\/[^/]+$/.test(path) && path !== "/companies/new");
   if (href === "/files") return path === "/files" || /^\/companies\/[^/]+\/files$/.test(path);
-  if (href === "/actions") return ["/actions", "/guide", "/plan", "/companies/new"].includes(path) || path.startsWith("/renew/") || path.startsWith("/paths/") || path.startsWith("/start/");
+  if (href === "/actions") return ["/actions", "/guide", "/plan", "/companies/new", "/registry", "/activities"].includes(path) || path.startsWith("/activities/") || path.startsWith("/renew/") || path.startsWith("/paths/") || path.startsWith("/start/");
   if (href === "/requests") return path === "/requests" || path.startsWith("/requests/");
   return path === href || path.startsWith(href + "/");
 }
