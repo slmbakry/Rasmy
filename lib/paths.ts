@@ -5,7 +5,7 @@
 import { ACTIVITIES, activityById } from "./activities";
 
 export type Answers = Record<string, string>;
-export type Question = { id: string; q: string; options: [string, string, string?][]; when?: (a: Answers) => boolean };
+export type Question = { id: string; q: string; options: [string, string, string?][]; when?: (a: Answers) => boolean; picker?: "activity" };
 export type Source = { title: string; url: string };
 export type Outcome = {
   title: string;
@@ -174,7 +174,7 @@ export const PATHS: Path[] = [
     questions: [ENTITY,
       { id: "what", q: "ماذا تريد أن تغيّر؟", options: [["address", "مقر الشركة"], ["activity", "النشاط", "إضافة نشاط أو تعديله"]] },
       { id: "where", q: "أين المقر الجديد؟", when: (a) => a.what === "address", options: [["same", "في نفس المحافظة"], ["other", "في محافظة أخرى"]] },
-      { id: "licensed", q: "ما النشاط الجديد؟", when: (a) => a.what === "activity", options: [
+      { id: "licensed", q: "ما النشاط الجديد؟", picker: "activity", when: (a) => a.what === "activity", options: [
         ...ACTIVITIES.map((x) => [x.id, x.title, x.hint] as [string, string, string]),
         ["no", "نشاط آخر", "لا يحتاج ترخيصًا خاصًا"], ["unsure", "لا أعرف", "سنعرض لك الأنشطة التي تحتاج ترخيصًا"],
       ] },

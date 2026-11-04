@@ -8,6 +8,7 @@ import { days, money, num } from "@/lib/format";
 import { optionsFor, services } from "@/lib/data";
 import { MEETINGS, PATHS, entityOfForm, type Answers } from "@/lib/paths";
 import { placeOf } from "@/lib/places";
+import { ACTIVITIES, grouped } from "@/lib/activities";
 import { useCompanies } from "../companies";
 import { useLoad, useSession } from "../session";
 import Requirements from "../Requirements";
@@ -19,6 +20,7 @@ export default function PathView({ id }: { id: string }) {
   const { isPreview } = useSession();
   const [answers, setAnswers] = useState<Answers>({});
   const [step, setStep] = useState(0);
+  const [search, setSearch] = useState("");
 
   // A company's own legal form answers the first question.
   useEffect(() => {
@@ -43,21 +45,43 @@ export default function PathView({ id }: { id: string }) {
   if (!done) {
     const q = visible.find((x) => !answers[x.id]) || visible[visible.length - 1];
     const idx = visible.indexOf(q);
+    const option = (v: string, label: string, hint?: string) => (
+      <label key={v} className="opt">
+        <input type="radio" name={q.id} checked={answers[q.id] === v}
+          onChange={() => { setAnswers({ ...answers, [q.id]: v }); setStep(step + 1); setSearch(""); }} />
+        <span><b>{label}</b>{hint && <small>{hint}</small>}</span>
+      </label>
+    );
     return (
       <>
         <Head back={["/actions", "الإجراءات"]} eyebrow={path.group} title={path.title}><p>{path.sub}</p></Head>
         <section className="panel quiz">
           <div className="row between"><span className="eyebrow">سؤال {num(idx + 1)} من {num(visible.length)}</span></div>
           <h2 id="pq">{q.q}</h2>
-          <div className="opts" role="radiogroup" aria-labelledby="pq">
-            {q.options.map(([v, label, hint]) => (
-              <label key={v} className="opt">
-                <input type="radio" name={q.id} checked={answers[q.id] === v}
-                  onChange={() => { setAnswers({ ...answers, [q.id]: v }); setStep(step + 1); }} />
-                <span><b>{label}</b>{hint && <small>{hint}</small>}</span>
-              </label>
-            ))}
-          </div>
+          {q.picker === "activity" ? (() => {
+            const ids = new Set(ACTIVITIES.map((a) => a.id));
+            const term = search.trim();
+            const shown = ACTIVITIES.filter((a) => !term || (a.title + " " + a.hint).includes(term));
+            return (
+              <div className="act-pick" role="radiogroup" aria-labelledby="pq">
+                <div className="field">
+                  <label htmlFor="path-act-q" className="sr-only">ابحث عن نشاط</label>
+                  <input id="path-act-q" type="search" placeholder="ابحث عن نشاط، مثل استيراد أو مقاولات" value={search} onChange={(e) => setSearch(e.target.value)} />
+                </div>
+                {grouped(shown).map(([g, list]) => (
+                  <div key={g} className="act-group"><h4>{g}</h4>
+                    <div className="opts">{list.map((a) => option(a.id, a.title, a.hint))}</div>
+                  </div>
+                ))}
+                {!shown.length && <p className="note">لا يوجد نشاط بهذا الاسم في القائمة.</p>}
+                <div className="opts">{q.options.filter(([v]) => !ids.has(v)).map(([v, label, hint]) => option(v, label, hint))}</div>
+              </div>
+            );
+          })() : (
+            <div className="opts" role="radiogroup" aria-labelledby="pq">
+              {q.options.map(([v, label, hint]) => option(v, label, hint))}
+            </div>
+          )}
           {idx > 0 && <button className="btn" type="button" onClick={() => { const prev = visible[idx - 1]; const next = { ...answers }; delete next[prev.id]; setAnswers(next); }}>رجوع</button>}
         </section>
       </>
