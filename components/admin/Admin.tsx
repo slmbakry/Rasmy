@@ -370,3 +370,35 @@ export function Companies() {
     </>
   );
 }
+
+// Notes sent from the feedback button, newest first.
+export function FeedbackList() {
+  const { toast } = useSession();
+  const [n, setN] = useState(0);
+  const { data, error } = useLoad(async () => {
+    const { data } = await sb.from("feedback").select("*").order("created_at", { ascending: false }).limit(200);
+    return data || [];
+  }, [n]);
+  if (error) return <LoadError />;
+  if (!data) return <Loading />;
+  const mark = async (id: string, done: boolean) => {
+    const { error: e } = await sb.from("feedback").update({ done_at: done ? new Date().toISOString() : null }).eq("id", id);
+    if (e) return toast("تعذّر الحفظ", true);
+    setN((x) => x + 1);
+  };
+  const open = data.filter((f) => !f.done_at).length;
+  return (
+    <>
+      <Head eyebrow="المدير" title="ملاحظات المستخدمين"><p>{open ? `${num(open)} ملاحظة لم تُراجع بعد.` : "لا توجد ملاحظات جديدة."}</p></Head>
+      <section className="panel">
+        {data.length ? data.map((f) => (
+          <div key={f.id} className={"fb-row" + (f.done_at ? " done" : "")}>
+            <p>{f.body}</p>
+            <small className="note"><span className="ltr">{f.email}</span> · {ROLES[f.role as keyof typeof ROLES] || ""} · <span className="ltr">{f.page}</span> · {fmtDate(f.created_at)}</small>
+            <button className="linkish" type="button" onClick={() => mark(f.id, !f.done_at)}>{f.done_at ? "إعادتها كجديدة" : "تمت المراجعة"}</button>
+          </div>
+        )) : <p className="note">لم تصل أي ملاحظة بعد.</p>}
+      </section>
+    </>
+  );
+}
