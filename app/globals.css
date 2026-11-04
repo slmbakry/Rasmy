@@ -484,3 +484,14 @@ label.btn.disabled { opacity: .5; pointer-events: none; }
 .reg-lic { display: inline-flex; align-items: center; gap: 6px; color: var(--warn-ink); font-weight: 600; font-size: 14px; text-decoration: none; justify-self: start; }
 .reg-sug textarea { width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 10px; font: inherit; background: var(--surface); color: var(--ink); }
 .reg-sug { display: grid; gap: 8px; }
+.share-page { display: grid; gap: 16px; }
+.share-files { display: grid; gap: 8px; }
+.share-file { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; text-decoration: none; color: var(--ink); }
+.share-file > span:nth-child(2) { flex: 1; min-width: 0; display: grid; }
+.share-file b { overflow-wrap: anywhere; }
+.share-foot { text-align: center; }
+.share-row { border-top: 1px solid var(--line); padding: 10px 0; display: grid; gap: 6px; }
+.share-row.off { opacity: .6; }
+.share-acts { gap: 12px; flex-wrap: wrap; }
+.share-pick { display: grid; gap: 8px; max-height: 280px; overflow: auto; }
+.fb-box .field input { width: 100%; }

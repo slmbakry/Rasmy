@@ -92,6 +92,15 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const needsPassword = s.recovery || (!s.hasPassword && readSession("rasmy-skip-password") !== "1");
   const [, redraw] = useState(0);
 
+  // A share link opens for anyone, signed in or not, without the app around it.
+  if (path.startsWith("/s/")) return (
+    <>
+      <header className="bar"><div className="bar-in"><Link className="brand" href="/" aria-label="ورقك"><img src="/logo-header-dark.svg" alt="ورقك" width={104} height={40} /></Link></div></header>
+      <main className="wrap">{children}</main>
+    </>
+  );
+
+
   let body: React.ReactNode;
   if (!s.ready) body = <Loading />;
   else if (!p) body = <Login />;

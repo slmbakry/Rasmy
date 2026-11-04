@@ -8,6 +8,7 @@ import { buildPack, deleteCompanyFile, fmtSize, savePack, uploadCompanyFile, PAC
 import { useLoad, useSession } from "../session";
 import { Head, Icon, LoadError, Loading } from "../ui";
 import ReadPanel from "./ReadPanel";
+import Shares from "./Shares";
 
 const ERRORS: Record<string, string> = {
   quota: "المساحة المتاحة في باقتك لا تكفي لهذا الملف. احذف ملفات لا تحتاجها، أو رقِّ باقتك.",
@@ -154,7 +155,7 @@ export default function Files({ companyId, switcher }: { companyId: string; swit
         </div>
         <aside className="split-side">
           <section className="panel sum">
-            <h2>إرسال ملف الشركة</h2>
+            <h2>إرسال ملف مجمّع</h2>
             <p className="note">اختر الصور والملفات من القائمة، وسنجمعها بالترتيب في ملف واحد.</p>
             <div className="kv"><span>الملفات المختارة</span><b>{num(chosen.length)}</b></div>
             {files.length > 0 && (
@@ -177,6 +178,7 @@ export default function Files({ companyId, switcher }: { companyId: string; swit
               </div>
             )}
           </section>
+          <Shares companyId={companyId} companyName={co.name} docs={docs} files={files} />
         </aside>
       </div>
     </>
