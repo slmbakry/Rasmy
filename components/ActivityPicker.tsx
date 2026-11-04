@@ -2,7 +2,7 @@
 // Choosing which licensed activities a company works in. null means not
 // answered yet; an empty list means none of them.
 import { useState } from "react";
-import { ACTIVITIES } from "@/lib/activities";
+import { ACTIVITIES, grouped } from "@/lib/activities";
 import { Icon } from "./ui";
 
 export default function ActivityPicker({ value, onChange, name }: { value: string[] | null; onChange: (v: string[] | null) => void; name?: string }) {
@@ -20,16 +20,21 @@ export default function ActivityPicker({ value, onChange, name }: { value: strin
         <label htmlFor="act-q" className="sr-only">ابحث عن نشاط</label>
         <input id="act-q" type="search" placeholder="ابحث عن نشاط، مثل استيراد أو مقاولات" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
-      <div className="opts">
-        {shown.map((a) => (
-          <label key={a.id} className="opt">
-            <input type="checkbox" checked={on(a.id)} onChange={() => toggle(a.id)} />
-            <span className="tile-ic"><Icon name={on(a.id) ? "check" : "doc"} size={20} /></span>
-            <span><b>{a.title}</b><small>{a.hint}</small></span>
-          </label>
-        ))}
-        {!shown.length && <p className="note">لا يوجد نشاط بهذا الاسم في القائمة. إذا لم يكن نشاطك فيها، فاختر أنه لا يحتاج ترخيصًا خاصًا.</p>}
-      </div>
+      {grouped(shown).map(([g, list]) => (
+        <div key={g} className="act-group">
+          <h4>{g}</h4>
+          <div className="opts">
+            {list.map((a) => (
+              <label key={a.id} className="opt">
+                <input type="checkbox" checked={on(a.id)} onChange={() => toggle(a.id)} />
+                <span className="tile-ic"><Icon name={on(a.id) ? "check" : "doc"} size={20} /></span>
+                <span><b>{a.title}</b><small>{a.hint}</small></span>
+              </label>
+            ))}
+          </div>
+        </div>
+      ))}
+      {!shown.length && <p className="note">لا يوجد نشاط بهذا الاسم في القائمة. إذا لم يكن نشاطك فيها، فاختر أنه لا يحتاج ترخيصًا خاصًا.</p>}
       <label className="opt act-none">
         <input type="checkbox" checked={value !== null && value.length === 0} onChange={(e) => onChange(e.target.checked ? [] : null)} />
         <span className="tile-ic"><Icon name="check" size={20} /></span>

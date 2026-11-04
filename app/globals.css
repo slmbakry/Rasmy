@@ -462,3 +462,4 @@ label.btn.disabled { opacity: .5; pointer-events: none; }
 .act-pick { display: grid; gap: 12px; }
 .act-pick .field input { width: 100%; }
 .act-none { border-style: dashed; }
+.act-group h4 { margin: 4px 0 8px; font-size: 14px; color: var(--ink-2); font-family: var(--display); }

@@ -7,7 +7,7 @@ import { useState } from "react";
 import { sb } from "@/lib/supabase";
 import { days, money, num } from "@/lib/format";
 import { optionsFor, services } from "@/lib/data";
-import { ACTIVITIES, TIMING, activityById } from "@/lib/activities";
+import { ACTIVITIES, TIMING, activityById, grouped } from "@/lib/activities";
 import { placeOf } from "@/lib/places";
 import { useCompanies } from "../companies";
 import { useLoad, useSession } from "../session";
@@ -22,14 +22,16 @@ export function ActivityList() {
       <Head back={["/actions", "الإجراءات"]} eyebrow="الأنشطة والتراخيص" title="أنشطة تحتاج ترخيصًا خاصًا">
         <p>هذه الأنشطة لا يكفي لمزاولتها السجل التجاري والبطاقة الضريبية، بل يلزمها ترخيص أو قيد لدى جهة مختصة. اعرف المطلوب قبل أن تبدأ.</p>
       </Head>
-      <section className="panel">
-        <div className="section-grid">{ACTIVITIES.map((a) => (
-          <Link key={a.id} className="path-card" href={`/activities/${a.id}`}>
-            <span className="chip">{mine.has(a.id) ? "من أنشطة شركتك" : a.authority}</span>
-            <b>{a.title}</b><small className="note">{a.hint}</small>
-          </Link>
-        ))}</div>
-      </section>
+      {grouped(ACTIVITIES).map(([g, list]) => (
+        <section key={g} className="panel"><h2>{g}</h2>
+          <div className="section-grid">{list.map((a) => (
+            <Link key={a.id} className="path-card" href={`/activities/${a.id}`}>
+              <span className="chip">{mine.has(a.id) ? "من أنشطة شركتك" : a.authority}</span>
+              <b>{a.title}</b><small className="note">{a.hint}</small>
+            </Link>
+          ))}</div>
+        </section>
+      ))}
     </>
   );
 }
