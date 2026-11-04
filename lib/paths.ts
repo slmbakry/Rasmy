@@ -27,6 +27,8 @@ const ONE_CHANGE: Source = { title: "مصراوي: هيئة الاستثمار �
 const SOLE_CHANGE: Source = { title: "اقتصاد مصر: هيئة الاستثمار تحدد ضوابط تحويل المنشآت الفردية إلى شركات", url: "https://eqtisadmisr.com/38092/" };
 const REGISTRY: Source = { title: "قانون السجل التجاري رقم ٣٤ لسنة ١٩٧٦", url: "https://lawyeregypt.net/%D9%82%D8%A7%D9%86%D9%88%D9%86-%D8%B1%D9%82%D9%85-34-%D9%84%D8%B3%D9%86%D8%A9-1976-%D9%81%D9%89-%D8%B4%D8%A3%D9%86-%D8%A7%D9%84%D8%B3%D8%AC%D9%84-%D8%A7%D9%84%D8%AA%D8%AC%D8%A7%D8%B1%D9%89/" };
 const JSC_MAJ: Source = { title: "مقارنة مواد قانون الشركات قبل وبعد تعديله، المادة ٧٠", url: "https://hamdyabdelghany.net/compare_159.htm" };
+const BOARD: Source = { title: "بوابة الأهرام: حق الجمعية العامة في عزل أعضاء مجلس الإدارة في أي وقت", url: "https://gate.ahram.org.eg/News/390779.aspx" };
+const OGM_SRC: Source = { title: "اختصاصات الجمعية العامة العادية طبقًا لقانون الشركات", url: "https://ahmed-fathy-shehata.com/%D8%A3%D8%AE%D8%AA%D8%B5%D8%A7%D8%B5%D8%A7%D8%AA-%D8%A7%D9%84%D8%AC%D9%85%D8%B9%D9%8A%D8%A9-%D8%A7%D9%84%D8%B9%D8%A7%D9%85%D8%A9-%D8%A7%D9%84%D8%B9%D8%A7%D8%AF%D9%8A%D8%A9-%D8%B7%D8%A8%D9%82%D8%A7/" };
 const LIQ: Source = { title: "صادق خليفة: كيف يمكنك تصفية شركتك في مصر", url: "https://sadanykhalifa.com/ar/single-blog/How-to-Liquidate-your-Company-in-Egypt" };
 const LIQ_LLC: Source = { title: "حل وتصفية الشركة ذات المسئولية المحدودة", url: "https://www.lawforall.info/index.pl/liquidation_and_dissolution_of_llcs" };
 const LIQ_DOCS: Source = { title: "محامي مصر: إجراءات تصفية الشركات", url: "https://lawyeregypt.net/%D8%A5%D8%AC%D8%B1%D8%A7%D8%A1%D8%A7%D8%AA-%D8%AA%D8%B5%D9%81%D9%8A%D8%A9-%D8%A7%D9%84%D8%B4%D8%B1%D9%83%D8%A7%D8%AA/" };
@@ -62,6 +64,11 @@ const ONE_UNSURE = "تطبيق أحكام الشركة ذات المسئولية
 const LLC_DECIDER = { who: "جماعة الشركاء", rule: "الأغلبية العددية للشركاء الحائزة لثلاثة أرباع رأس المال", meeting: "extraordinary" as const };
 // Capital changes, early dissolution, a change of the original purpose and mergers need three quarters (art. 70).
 const JSC_BIG = { who: "الجمعية العامة غير العادية", rule: "ثلاثة أرباع الأسهم الممثلة في الاجتماع", meeting: "extraordinary" as const };
+const JSC_EGM = { who: "الجمعية العامة غير العادية", rule: "ثلثا الأسهم الممثلة في الاجتماع", meeting: "extraordinary" as const };
+const JSC_OGM = { who: "الجمعية العامة العادية", rule: "الأغلبية المطلقة للأسهم الممثلة في الاجتماع", meeting: "ordinary" as const };
+const EGM_QUORUM = "لا يصح اجتماع الجمعية غير العادية إلا بحضور مساهمين يملكون نصف رأس المال على الأقل. فإن لم يكتمل يُدعى إلى اجتماع ثانٍ خلال ثلاثين يومًا، ويصح بحضور ربع رأس المال.";
+const OGM_QUORUM = "لا يصح اجتماع الجمعية العادية إلا بحضور مساهمين يملكون ربع رأس المال على الأقل، ما لم يشترط النظام الأساسي نسبة أعلى لا تزيد على النصف. فإن لم يكتمل يُدعى إلى اجتماع ثانٍ خلال ثلاثين يومًا.";
+const OGM_UNSURE = "لم نتحقق من نص صريح على أغلبية قرارات الجمعية العادية ولا على نصاب اجتماعها الثاني، والشائع أنها الأغلبية المطلقة للأسهم الممثلة.";
 const ONE_DECIDER = { who: "مالك الشركة", rule: "قرار مكتوب من المالك", meeting: "owner" as const };
 
 export const PATHS: Path[] = [
@@ -87,7 +94,7 @@ export const PATHS: Path[] = [
         why: "رأس المال جزء من عقد الشركة، فتغييره تعديل للعقد يعتمده المالك، ثم تعتمده الهيئة ويُؤشَّر به في السجل التجاري.", decider: ONE_DECIDER, notes, unsure: [...unsure, ONE_UNSURE], serviceId: "capital_change", sources: [LAW, GAFI] };
       if (a.entity === "jsc") return { title: a.dir === "up" ? "زيادة رأس مال شركة المساهمة" : "تخفيض رأس مال شركة المساهمة",
         why: "تغيير رأس المال تعديل للنظام الأساسي، فيلزمه قرار من الجمعية العامة غير العادية.", decider: JSC_BIG,
-        notes: [...notes, "لا يصح اجتماع الجمعية غير العادية إلا بحضور مساهمين يملكون نصف رأس المال على الأقل. فإن لم يكتمل يُدعى إلى اجتماع ثانٍ خلال ثلاثين يومًا، ويصح بحضور ربع رأس المال."],
+        notes: [...notes, EGM_QUORUM],
         unsure, serviceId: "capital_change", sources: a.dir === "down" ? [LAW, JSC_MAJ, CREDITORS] : [LAW, JSC_MAJ] };
       return { title: a.dir === "up" ? "زيادة رأس مال الشركة" : "تخفيض رأس مال الشركة",
         why: "لا يجوز تعديل عقد الشركة ذات المسئولية المحدودة ولا زيادة رأس مالها أو تخفيضه إلا بموافقة الأغلبية العددية للشركاء الحائزة لثلاثة أرباع رأس المال.",
@@ -117,7 +124,7 @@ export const PATHS: Path[] = [
         unsure: [ONE_UNSURE], serviceId: "share_transfer", sources: a.move === "in" ? [LAW, ONE_CHANGE] : [LAW] };
       if (a.in_how === "capital") return { title: "دخول شريك بزيادة رأس المال", why: "الشريك الجديد يدفع حصة جديدة فيزيد رأس المال، فيمر الإجراء بقرار زيادة رأس المال ثم تعديل العقد.",
         decider: a.entity === "jsc" ? JSC_BIG : LLC_DECIDER,
-        notes: ["المستندات هنا هي مستندات زيادة رأس المال، ويُضاف الشريك الجديد في عقد التعديل."], unsure: [], serviceId: "capital_change", link: { href: "/paths/capital", label: "تفاصيل زيادة رأس المال" }, sources: [LAW] };
+        notes: ["المستندات هنا هي مستندات زيادة رأس المال، ويُضاف الشريك الجديد في عقد التعديل."], unsure: [], serviceId: "capital_change", link: { href: "/paths/capital", label: "تفاصيل زيادة رأس المال" }, sources: a.entity === "jsc" ? [LAW, JSC_MAJ] : [LAW] };
       if (a.entity === "jsc") return { title: "انتقال الأسهم في شركة المساهمة", why: "تنتقل الأسهم وفق قواعد تداولها والنظام الأساسي للشركة، ولا يطبق حق الاسترداد الخاص بالشركات ذات المسئولية المحدودة بالطريقة نفسها.",
         notes: [], unsure: ["لم نتحقق بعد من قيود نقل الأسهم في شركات المساهمة غير المقيدة في البورصة."], serviceId: "share_transfer", sources: [LAW] };
       const outsider = a.in_how === "buy" || a.out_to === "outsider";
@@ -143,8 +150,16 @@ export const PATHS: Path[] = [
         notes: [], unsure: ["لم نتحقق بعد مما إذا كان التفويض يحتاج تأشيرًا في السجل التجاري للمنشأة الفردية."], serviceId: null, sources: [] };
       if (a.entity === "one") return { title: a.act === "remove" ? "عزل مدير شركة الشخص الواحد" : "تعيين مدير لشركة الشخص الواحد",
         why: "المالك يعيّن مديرًا أو أكثر ويحدد صلاحياته، ثم يُؤشَّر بالتغيير في السجل التجاري.", decider: ONE_DECIDER, notes: [], unsure: [ONE_UNSURE], serviceId: "manager_change", sources: [LAW] };
-      if (a.entity === "jsc") return { title: "تغيير مجلس الإدارة أو العضو المنتدب", why: "في شركة المساهمة تنتخب الجمعية العامة مجلس الإدارة، ويعيّن المجلس العضو المنتدب وفق النظام الأساسي.",
-        notes: [], unsure: ["لم نتحقق بعد من تفاصيل تغيير أعضاء مجلس الإدارة وأغلبيته في شركة المساهمة."], serviceId: "manager_change", sources: [LAW] };
+      if (a.entity === "jsc") return { title: a.act === "remove" ? "عزل عضو مجلس الإدارة" : "تغيير مجلس الإدارة أو العضو المنتدب",
+        why: "في شركة المساهمة تنتخب الجمعية العامة العادية أعضاء مجلس الإدارة وتعزلهم، ويختار المجلس من بين أعضائه رئيسه والعضو المنتدب.",
+        decider: JSC_OGM,
+        notes: [
+          ...(a.act === "remove" ? ["للجمعية العامة أن تعزل مجلس الإدارة أو أحد أعضائه في أي وقت، ولو لم يكن العزل واردًا في جدول الأعمال."] : []),
+          "تغيير رئيس المجلس أو العضو المنتدب من بين الأعضاء الحاليين يقرره مجلس الإدارة نفسه، ولا يحتاج جمعية عامة.",
+          OGM_QUORUM,
+          "يُؤشَّر بالتغيير في السجل التجاري ليصبح نافذًا أمام البنوك والجهات.",
+        ],
+        unsure: [OGM_UNSURE], serviceId: "manager_change", sources: [LAW, OGM_SRC, BOARD] };
       return a.act === "remove"
         ? { title: "عزل مدير الشركة", why: "عزل المدير قرار يمس إدارة الشركة، فيلزمه أغلبية أعلى من التعيين.", decider: { who: "جماعة الشركاء", rule: "الأغلبية العددية للشركاء الحائزة لثلاثة أرباع رأس المال", meeting: "extraordinary" },
             notes: ["قد يجيز عقد الشركة عزل المدير لسبب واضح ومقبول، فراجع العقد.", "يُؤشَّر بالعزل في السجل التجاري، ومعه تعيين البديل إن وجد."], unsure: [], serviceId: "manager_change", sources: [LAW, MGMT] }
@@ -166,8 +181,11 @@ export const PATHS: Path[] = [
         if (a.licensed !== "no") notes.push("الأنشطة التي تحتاج ترخيصًا خاصًا تلزمها موافقة الجهة المختصة قبل مزاولتها.");
         return { title: sole ? "تعديل نشاط المنشأة" : "إضافة نشاط أو تعديله",
           why: sole ? "يُعدَّل نشاط المنشأة الفردية في السجل التجاري بطلب من صاحبها." : "إضافة نشاط تعني تعديل غرض الشركة في عقدها، لا مجرد تحديث في السجل، فيلزمها قرار غير عادي.",
-          decider: sole ? { who: "صاحب المنشأة", rule: "طلب تعديل في السجل التجاري", meeting: "none" } : a.entity === "one" ? ONE_DECIDER : LLC_DECIDER,
-          notes, unsure: sole ? ["لم نتحقق بعد من مستندات تعديل نشاط المنشأة الفردية."] : a.entity === "one" ? [ONE_UNSURE] : [], serviceId: "activity_change", sources: [ACTIVITY, GAFI] };
+          decider: sole ? { who: "صاحب المنشأة", rule: "طلب تعديل في السجل التجاري", meeting: "none" } : a.entity === "one" ? ONE_DECIDER
+            : a.entity === "jsc" ? { ...JSC_EGM, rule: "ثلثا الأسهم الممثلة في الاجتماع، وثلاثة أرباعها إذا غيّر القرار الغرض الأصلي للشركة" } : LLC_DECIDER,
+          notes: a.entity === "jsc" ? [...notes, EGM_QUORUM] : notes,
+          unsure: sole ? ["لم نتحقق بعد من مستندات تعديل نشاط المنشأة الفردية."] : a.entity === "one" ? [ONE_UNSURE] : [],
+          serviceId: "activity_change", sources: a.entity === "jsc" ? [ACTIVITY, LAW, JSC_MAJ, GAFI] : [ACTIVITY, GAFI] };
       }
       const notes = ["يلزم عقد إيجار ثابت التاريخ على الأقل أو مستند ملكية موثق للمقر الجديد."];
       const unsure: string[] = [];
@@ -177,8 +195,10 @@ export const PATHS: Path[] = [
       }
       return { title: sole ? "تغيير مقر المنشأة" : "تغيير مقر الشركة",
         why: sole ? "يُعدَّل مقر المنشأة في السجل التجاري بطلب من صاحبها." : "إذا كان المقر مذكورًا في عقد الشركة فتغييره تعديل للعقد يلزمه قرار غير عادي، ولا يكفي قرار المدير.",
-        decider: sole ? { who: "صاحب المنشأة", rule: "طلب تعديل في السجل التجاري", meeting: "none" } : a.entity === "one" ? ONE_DECIDER : LLC_DECIDER,
-        notes: [...notes, "يُطلب التأشير في السجل التجاري خلال شهر من تغيير المقر.", "بعد التأشير في السجل التجاري تُحدَّث بيانات الشركة لدى مأمورية الضرائب والتأمينات."], unsure, serviceId: "address_change", sources: [GAFI, REGISTRY, ACTIVITY] };
+        decider: sole ? { who: "صاحب المنشأة", rule: "طلب تعديل في السجل التجاري", meeting: "none" } : a.entity === "one" ? ONE_DECIDER : a.entity === "jsc" ? JSC_EGM : LLC_DECIDER,
+        notes: [...notes, ...(a.entity === "jsc" ? [EGM_QUORUM] : []), "يُطلب التأشير في السجل التجاري خلال شهر من تغيير المقر.", "بعد التأشير في السجل التجاري تُحدَّث بيانات الشركة لدى مأمورية الضرائب والتأمينات."],
+        unsure: a.entity === "jsc" ? [...unsure, "لم نتحقق مما إذا كان النظام الأساسي يجيز لمجلس الإدارة نقل المقر داخل المدينة نفسها دون جمعية عامة."] : unsure,
+        serviceId: "address_change", sources: a.entity === "jsc" ? [GAFI, REGISTRY, LAW, JSC_MAJ] : [GAFI, REGISTRY, ACTIVITY] };
     },
   },
   {
@@ -190,8 +210,8 @@ export const PATHS: Path[] = [
       if (a.entity === "one") return { title: "اعتماد ميزانية شركة الشخص الواحد", why: "المالك يعتمد القوائم المالية للسنة بقرار منه، خلال ستة أشهر من انتهاء السنة المالية.",
         decider: ONE_DECIDER, notes: ["تُطبَّق أحكام مراقب الحسابات والقوائم المالية الخاصة بشركات المساهمة على شركات الشخص الواحد."], unsure: [ONE_UNSURE], serviceId: "accounts_approval", sources: [LAW, REGS] };
       if (a.entity === "jsc") return { title: "الجمعية العامة العادية السنوية", why: "تجب دعوة الجمعية العامة للانعقاد مرة على الأقل في السنة خلال الستة أشهر التالية لنهاية السنة المالية.",
-        decider: { who: "الجمعية العامة العادية", rule: "الأغلبية المطلقة للأسهم الممثلة في الاجتماع", meeting: "ordinary" }, notes: ["تُنشر القوائم المالية وتقرير مراقب الحسابات قبل الاجتماع."],
-        unsure: ["لم نتحقق بعد من الأغلبية ونصاب الحضور في الجمعية العادية."], serviceId: "accounts_approval", sources: [LAW, REGS] };
+        decider: JSC_OGM, notes: ["تُنشر القوائم المالية وتقرير مراقب الحسابات قبل الاجتماع.", OGM_QUORUM],
+        unsure: [OGM_UNSURE], serviceId: "accounts_approval", sources: [LAW, REGS, OGM_SRC] };
       return { title: "اجتماع الشركاء السنوي واعتماد الميزانية", why: "تجتمع جماعة الشركاء خلال ستة أشهر من انتهاء السنة المالية للنظر في الميزانية وحساب الأرباح والخسائر وتقرير المديرين.",
         decider: { who: "جماعة الشركاء", rule: "قرار الاجتماع السنوي", meeting: "ordinary" },
         notes: ["يُخطر الشركاء بكتاب موصى عليه مع علم الوصول، مرفقًا به الميزانية وتقرير المديرين وتقرير مراقب الحسابات.", "توزيع الأرباح يُقرَّر في الاجتماع نفسه."],
@@ -240,7 +260,7 @@ export const PATHS: Path[] = [
         decider: ONE_DECIDER, notes, unsure: [ONE_UNSURE, ...unsure], serviceId: "liquidation", sources: [LIQ, LIQ_DOCS, INS_END] };
       if (a.entity === "jsc") return { title: "حل شركة المساهمة وتصفيتها", why: "حل الشركة قبل موعدها قرار يغيّر وجودها نفسه، فيلزمه قرار من الجمعية العامة غير العادية بأغلبية مشددة.",
         decider: JSC_BIG,
-        notes: ["لا يصح اجتماع الجمعية غير العادية إلا بحضور مساهمين يملكون نصف رأس المال على الأقل. فإن لم يكتمل يُدعى إلى اجتماع ثانٍ خلال ثلاثين يومًا، ويصح بحضور ربع رأس المال.", ...notes],
+        notes: [EGM_QUORUM, ...notes],
         unsure, serviceId: "liquidation", sources: [LAW, JSC_MAJ, LIQ, LIQ_DOCS, INS_END] };
       return { title: "حل الشركة وتصفيتها", why: "إنهاء الشركة ذات المسئولية المحدودة يمر بمرحلتين: قرار من الشركاء بالحل ووضع الشركة تحت التصفية، ثم تصفية يقوم بها مصفٍ حتى شطب القيد.",
         decider: { who: "جماعة الشركاء", rule: "الأغلبية التي يحددها عقد الشركة لحلها قبل موعدها", meeting: "extraordinary" },
